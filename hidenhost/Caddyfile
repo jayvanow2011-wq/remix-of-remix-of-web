@@ -1,0 +1,21 @@
+# Caddy reverse proxy — fronts the Node WS server with auto-TLS.
+# Put on the box that owns veltrix.hidenfree.com (DNS A → that IP).
+#
+#   sudo caddy run --config /etc/caddy/Caddyfile
+#
+veltrix.hidenfree.com {
+    encode zstd gzip
+
+    @ws {
+        header Connection *Upgrade*
+        header Upgrade    websocket
+    }
+    reverse_proxy @ws vicky.hidencloud.com:24609
+
+    reverse_proxy vicky.hidencloud.com:24609 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}

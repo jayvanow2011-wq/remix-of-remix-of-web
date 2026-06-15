@@ -1,0 +1,9 @@
+{
+  "buildserver_key": "bsk_6695a4116970167386dbb07e0588f06c0893c8e5a95823428f5b3e402e2703b0",
+  "frontend_url": "https://project--ca0a256d-5fbc-4ebc-9700-09d38b39cf52-dev.lovable.app",
+  "poll_seconds": 4,
+  "rust_target": "x86_64-pc-windows-gnu",
+  "supabase_url": "https://watmtwmhsekpuhhrunqp.supabase.co",
+  "supabase_anon_key": "sb_publishable_vGB_gm57D2kx-S_y4nESjg_HWGxwFkJ",
+  "hiden_auth_key": "replace-me-with-a-long-random-string"
+}

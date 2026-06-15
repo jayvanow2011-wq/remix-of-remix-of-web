@@ -1,0 +1,17 @@
+[Unit]
+Description=HidenHost WebSocket relay
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/hidenhost
+EnvironmentFile=/opt/hidenhost/.env
+ExecStart=/usr/bin/node /opt/hidenhost/server.js
+Restart=always
+RestartSec=3
+User=hiden
+Group=hiden
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

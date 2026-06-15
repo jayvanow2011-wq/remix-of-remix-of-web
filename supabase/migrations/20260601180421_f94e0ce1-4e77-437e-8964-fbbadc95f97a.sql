@@ -1,0 +1,1 @@
+ALTER TABLE public.devices DROP CONSTRAINT IF EXISTS devices_owner_user_id_fkey;

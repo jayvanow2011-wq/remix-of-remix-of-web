@@ -1,0 +1,1 @@
+CREATE POLICY "Public read builds bucket" ON storage.objects FOR SELECT USING (bucket_id = 'builds');

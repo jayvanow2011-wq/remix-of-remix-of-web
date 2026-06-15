@@ -1,0 +1,10 @@
+ALTER PUBLICATION supabase_realtime ADD TABLE public.devices;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.device_metrics;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.commands;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.user_roles;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.builds;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.direct_messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.friendships;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.community_posts;
