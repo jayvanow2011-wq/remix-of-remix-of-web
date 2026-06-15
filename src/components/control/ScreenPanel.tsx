@@ -9,11 +9,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-type Stroke = { points: { xRel: number; yRel: number }[]; color: string };
+type Stroke = { points: { xRel: number; yRel: number }[]; color: string; width: number };
 
 // Fixed sensible defaults — no user-facing quality/fps controls.
 const STREAM_QUALITY = 60;
 const STREAM_FPS = 30;
+const MOUSE_MOVE_MIN_MS = 16; // ~60 Hz cap on input.mouse move spam
 
 export function ScreenPanel({ deviceId }: { deviceId: string }) {
   const { send } = useDeviceCommands(deviceId);
@@ -29,6 +30,8 @@ export function ScreenPanel({ deviceId }: { deviceId: string }) {
   const [inputLocked, setInputLocked] = useState(false);
 
   const [drawMode, setDrawMode] = useState(false);
+  const [drawColor, setDrawColor] = useState("#22d3ee");
+  const [drawWidth, setDrawWidth] = useState(3);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const drawingRef = useRef<Stroke | null>(null);
 
@@ -36,6 +39,8 @@ export function ScreenPanel({ deviceId }: { deviceId: string }) {
 
   const imgRef = useRef<HTMLImageElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
+  const lastMoveTsRef = useRef(0);
+  const mouseDownRef = useRef(false);
 
   // Refs so listeners always see current state without re-subscribing.
   const transportRef = useRef(transport);
