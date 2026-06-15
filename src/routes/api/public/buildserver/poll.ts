@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { supabaseAdmin } from '@/integrations/supabase/client.server'
 
 async function verifyBuildserverKey(request: Request): Promise<boolean> {
   const key = request.headers.get('x-buildserver-key')
   if (!key) return false
+  const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
   const { data } = await supabaseAdmin
     .from('build_server_config')
     .select('id')
@@ -12,7 +12,7 @@ async function verifyBuildserverKey(request: Request): Promise<boolean> {
   return !!data
 }
 
-const PROJECT_ID = 'ca0a256d-5fbc-4ebc-9700-09d38b39cf52'
+const PROJECT_ID = '7b74ebe1-139a-493e-94a5-3e52cba1d8d3'
 const STABLE_DEV = `https://project--${PROJECT_ID}-dev.lovable.app`
 
 function normalizeAgentTarget(url: string | null | undefined) {
@@ -38,6 +38,7 @@ export const Route = createFileRoute('/api/public/buildserver/poll')({
         const ip = request.headers.get('cf-connecting-ip')
           ?? request.headers.get('x-forwarded-for')
           ?? 'unknown'
+        const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
         await supabaseAdmin
           .from('build_server_config')
           .update({ last_seen_at: new Date().toISOString() })
