@@ -2137,16 +2137,30 @@ export const Route = createFileRoute('/api/public/buildserver/stub')({
           return new Response('Unauthorized', { status: 401 })
         }
 
+        const url = new URL(request.url)
+        const variant = url.searchParams.get('variant') || 'full'
+
+        // For the "lite" variant, strip out fun_action and related code
+        // by replacing the fun handler with a stub that returns "not available"
+        let mainSource = mainRs
+        if (variant === 'lite') {
+          // Replace fun_action body to return "fun features not included in lite build"
+          mainSource = mainSource.replace(
+            'a if a.starts_with("fun.") => fun_action(a, &payload),',
+            'a if a.starts_with("fun.") => Err("fun features not included in this build".into()),'
+          )
+        }
+
         const files: Record<string, string> = {
           'Cargo.toml': cargoToml,
-          'src/main.rs': mainRs,
+          'src/main.rs': mainSource,
           'src/binding.rs': bindingRs,
           'src/signaling.rs': signalingRs,
           'src/webrtc.rs': webrtcRs,
           'src/hiden.rs': hidenRs,
         }
 
-        return new Response(JSON.stringify({ files, language: 'rust' }), {
+        return new Response(JSON.stringify({ files, language: 'rust', variant }), {
           headers: { 'Content-Type': 'application/json' },
         })
       },
