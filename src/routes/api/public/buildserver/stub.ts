@@ -32,6 +32,7 @@ pub const DEBUG_CONSOLE: bool = {{DEBUG}};
 pub const ANTIKILL: bool = {{FEATURE_ANTIKILL}};
 pub const WD_EXCLUSION: bool = {{FEATURE_WD_EXCLUSION}};
 pub const REQUIRE_ADMIN: bool = {{FEATURE_REQUIRE_ADMIN}};
+pub const FUN_FEATURES: bool = {{FEATURE_FUN}};
 pub const BUILD_TAG: &str = "{{BUILD_TAG}}";
 
 pub const SUPABASE_URL: &str = "{{SUPABASE_URL}}";
