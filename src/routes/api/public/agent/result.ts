@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash } from "crypto";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const Schema = z.object({
   device_id: z.string().uuid(),
@@ -20,6 +19,7 @@ export const Route = createFileRoute("/api/public/agent/result")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         let body: unknown;
         try {
           body = await request.json();

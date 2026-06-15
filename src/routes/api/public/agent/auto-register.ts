@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash, randomBytes } from "crypto";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const Schema = z.object({
   pc_name: z.string().min(1).max(255),
@@ -29,6 +28,7 @@ function clientIp(req: Request) {
 async function resolveOwnerUserId(bindUserId: string | undefined) {
   if (!bindUserId) return null;
   const alias = bindUserId.trim().toLowerCase();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   if (alias === "1" || alias === "jayjay") {
     const { data } = await supabaseAdmin
@@ -58,6 +58,7 @@ export const Route = createFileRoute("/api/public/agent/auto-register")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         let body: unknown;
         try {
           body = await request.json();

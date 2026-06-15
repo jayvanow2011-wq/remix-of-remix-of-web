@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash } from "crypto";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const HeartbeatSchema = z.object({
   device_id: z.string().uuid(),
@@ -39,6 +38,7 @@ export const Route = createFileRoute("/api/public/agent/heartbeat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         let body: unknown;
         try {
           body = await request.json();
@@ -52,7 +52,6 @@ export const Route = createFileRoute("/api/public/agent/heartbeat")({
         const { device_id, device_token, metrics, username } = parsed.data;
         const ip = clientIp(request);
 
-        // Constant-time-ish: fetch by id then compare hash
         const { data: device } = await supabaseAdmin
           .from("devices")
           .select("id, device_token_hash")

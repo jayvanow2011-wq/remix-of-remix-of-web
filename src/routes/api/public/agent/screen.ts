@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash } from "crypto";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const Schema = z.object({
   device_id: z.string().uuid(),
@@ -17,6 +16,7 @@ export const Route = createFileRoute("/api/public/agent/screen")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         let body: unknown;
         try {
           body = await request.json();
@@ -37,15 +37,11 @@ export const Route = createFileRoute("/api/public/agent/screen")({
         }
 
         const ts = new Date().toISOString();
-        // Hot path: broadcast the JPEG to the live viewer channel.
         const { broadcast } = await import("@/lib/realtime-broadcast.server");
         await broadcast(`device-frames-${device_id}`, "screen", {
           jpeg_b64,
           ts,
         });
-        // Cold path: stash the latest frame + timestamp on the row so a
-        // viewer that opens the page mid-stream sees something immediately.
-        // We don't await this — broadcast is the source of truth for FPS.
         void supabaseAdmin
           .from("devices")
           .update({ last_screen_at: ts })
