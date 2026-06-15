@@ -285,6 +285,27 @@ export function ScreenPanel({ deviceId }: { deviceId: string }) {
           <ToolButton active={mouseControl} onClick={() => setMouseControl((v) => !v)} icon={MousePointer2} label="Mouse" />
           <ToolButton active={keyboardControl} onClick={() => setKeyboardControl((v) => !v)} icon={Keyboard} label="Keyboard" />
           <ToolButton active={drawMode} onClick={() => setDrawMode((v) => !v)} icon={Pencil} label="Draw" />
+          {drawMode && (
+            <div className="inline-flex items-center gap-2 rounded-md border border-border/60 px-2 py-1">
+              <input
+                type="color"
+                value={drawColor}
+                onChange={(e) => setDrawColor(e.target.value)}
+                className="h-5 w-6 cursor-pointer rounded border-0 bg-transparent p-0"
+                title="Stroke color"
+              />
+              <input
+                type="range"
+                min={1}
+                max={20}
+                value={drawWidth}
+                onChange={(e) => setDrawWidth(Number(e.target.value))}
+                className="h-1 w-20 accent-primary"
+                title={`Thickness: ${drawWidth}px`}
+              />
+              <span className="w-5 text-center text-[10px] text-muted-foreground">{drawWidth}</span>
+            </div>
+          )}
           <button
             onClick={clearDrawing}
             className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1.5 text-xs hover:bg-accent"
