@@ -737,6 +737,7 @@ export type Database = {
           totp_enabled: boolean
           totp_secret: string | null
           updated_at: string
+          user_number: number | null
           username: string | null
         }
         Insert: {
@@ -766,6 +767,7 @@ export type Database = {
           totp_enabled?: boolean
           totp_secret?: string | null
           updated_at?: string
+          user_number?: number | null
           username?: string | null
         }
         Update: {
@@ -795,6 +797,7 @@ export type Database = {
           totp_enabled?: boolean
           totp_secret?: string | null
           updated_at?: string
+          user_number?: number | null
           username?: string | null
         }
         Relationships: []
