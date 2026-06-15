@@ -100,9 +100,8 @@ def progress(bid, pct, msg="", status="building"):
     except Exception as e:
         warn(f"progress error: {e}")
 
-def fetch_stub(fun_features=False):
-    variant = "full" if fun_features else "lite"
-    r = requests.get(API("stub") + f"?variant={variant}", headers=HEADERS, timeout=20)
+def fetch_stub(_fun_features=False):
+    r = requests.get(API("stub"), headers=HEADERS, timeout=20)
     r.raise_for_status()
     return r.json()["files"]
 
