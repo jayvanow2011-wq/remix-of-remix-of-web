@@ -141,20 +141,31 @@ export function ScreenPanel({ deviceId }: { deviceId: string }) {
     [relaySend],
   );
 
-  const onImgMouseMove = (e: React.MouseEvent) => {
-    if (!mouseControl || drawMode) return;
+  const onImgPointerDown = (e: React.PointerEvent) => {
+    if (drawMode) { onDrawDown(e); return; }
+    if (!mouseControl) return;
+    const c = remoteCoords(e);
+    if (!c) return;
+    mouseDownRef.current = true;
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    sendMouse("down", { ...c, button: e.button === 2 ? "right" : e.button === 1 ? "middle" : "left" });
+  };
+  const onImgPointerMove = (e: React.PointerEvent) => {
+    if (drawMode) { onDrawMove(e); return; }
+    if (!mouseControl) return;
+    const now = performance.now();
+    if (now - lastMoveTsRef.current < MOUSE_MOVE_MIN_MS) return;
+    lastMoveTsRef.current = now;
     const c = remoteCoords(e);
     if (c) sendMouse("move", c);
   };
-  const onImgMouseDown = (e: React.MouseEvent) => {
-    if (!mouseControl || drawMode) return;
-    const c = remoteCoords(e);
-    if (c) sendMouse("down", { ...c, button: e.button === 2 ? "right" : e.button === 1 ? "middle" : "left" });
-  };
-  const onImgMouseUp = (e: React.MouseEvent) => {
-    if (!mouseControl || drawMode) return;
+  const onImgPointerUp = (e: React.PointerEvent) => {
+    if (drawMode) { onDrawUp(); return; }
+    if (!mouseControl) return;
+    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
     const c = remoteCoords(e);
     if (c) sendMouse("up", { ...c, button: e.button === 2 ? "right" : e.button === 1 ? "middle" : "left" });
+    mouseDownRef.current = false;
   };
   const onImgWheel = (e: React.WheelEvent) => {
     if (!mouseControl || drawMode) return;
@@ -187,13 +198,14 @@ export function ScreenPanel({ deviceId }: { deviceId: string }) {
   }, [keyboardControl, relaySend]);
 
   // --- Drawing ---
-  const onDrawDown = (e: React.MouseEvent) => {
+  const onDrawDown = (e: React.PointerEvent) => {
     if (!drawMode) return;
     const c = remoteCoords(e);
     if (!c) return;
-    drawingRef.current = { points: [c], color: "#22d3ee" };
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    drawingRef.current = { points: [c], color: drawColor, width: drawWidth };
   };
-  const onDrawMove = (e: React.MouseEvent) => {
+  const onDrawMove = (e: React.PointerEvent) => {
     if (!drawMode || !drawingRef.current) return;
     const c = remoteCoords(e);
     if (!c) return;
