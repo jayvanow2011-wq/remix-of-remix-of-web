@@ -18,7 +18,7 @@ const Input = z.object({
 
 // Stable lovable.app URLs that actually serve our API (lovableproject.com
 // preview URLs redirect and break the agent's JSON parsing).
-const PROJECT_ID = "7b74ebe1-139a-493e-94a5-3e52cba1d8d3";
+const PROJECT_ID = "5a812085-735a-438c-8ab0-793e6374dce4";
 const STABLE_PROD = `https://project--${PROJECT_ID}.lovable.app`;
 const STABLE_DEV = `https://project--${PROJECT_ID}-dev.lovable.app`;
 

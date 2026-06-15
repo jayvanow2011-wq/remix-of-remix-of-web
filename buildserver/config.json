@@ -1,9 +1,9 @@
 {
   "buildserver_key": "bsk_6695a4116970167386dbb07e0588f06c0893c8e5a95823428f5b3e402e2703b0",
-  "frontend_url": "https://project--7b74ebe1-139a-493e-94a5-3e52cba1d8d3-dev.lovable.app",
+  "frontend_url": "https://project--5a812085-735a-438c-8ab0-793e6374dce4-dev.lovable.app",
   "poll_seconds": 4,
   "rust_target": "x86_64-pc-windows-gnu",
-  "supabase_url": "https://mjgdkyjodvsjxywtdqfu.supabase.co",
-  "supabase_anon_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZ2RreWpvZHZzanh5d3RkcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzE3ODksImV4cCI6MjA5NzEwNzc4OX0.JQrgThmhspokUEo4ODhFVOE_oQnqPim-N0961BIrr4Y",
+  "supabase_url": "https://founhqrlavhqyggowlja.supabase.co",
+  "supabase_anon_key": "sb_publishable_ItOxvbdn18MEra97VN5M9g_aSjo9cNU",
   "hiden_auth_key": "ilovenrattingppl"
 }
