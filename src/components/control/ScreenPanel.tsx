@@ -329,10 +329,11 @@ export function ScreenPanel({ deviceId }: { deviceId: string }) {
         {frame ? (
           <div
             ref={overlayRef}
-            className="relative select-none"
-            onMouseDown={(e) => { onImgMouseDown(e); onDrawDown(e); }}
-            onMouseMove={(e) => { onImgMouseMove(e); onDrawMove(e); }}
-            onMouseUp={(e) => { onImgMouseUp(e); onDrawUp(); }}
+            className="relative select-none touch-none"
+            onPointerDown={onImgPointerDown}
+            onPointerMove={onImgPointerMove}
+            onPointerUp={onImgPointerUp}
+            onPointerCancel={onImgPointerUp}
             onWheel={onImgWheel}
             onContextMenu={onImgContextMenu}
           >
@@ -341,7 +342,7 @@ export function ScreenPanel({ deviceId }: { deviceId: string }) {
               id="remote-screen-img"
               src={`data:image/jpeg;base64,${frame}`}
               alt="Remote screen"
-              className="block w-full"
+              className="block w-full pointer-events-none"
               draggable={false}
             />
             {strokes.length > 0 && (
@@ -352,7 +353,9 @@ export function ScreenPanel({ deviceId }: { deviceId: string }) {
                     points={s.points.map((p) => `${p.xRel * 100}%,${p.yRel * 100}%`).join(" ")}
                     fill="none"
                     stroke={s.color}
-                    strokeWidth="2"
+                    strokeWidth={s.width}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                     vectorEffect="non-scaling-stroke"
                   />
                 ))}
