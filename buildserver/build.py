@@ -36,8 +36,8 @@ API        = lambda p: f"{FRONTEND}/api/public/buildserver/{p}"
 WORK       = ROOT / "work"; WORK.mkdir(exist_ok=True)
 
 # Supabase / relay constants baked into builds
-SUPABASE_URL      = CFG.get("supabase_url", "https://dqnhmjnmczsjdgtpuglu.supabase.co")
-SUPABASE_ANON_KEY = CFG.get("supabase_anon_key", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxbmhtam5tY3pzamRndHB1Z2x1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1Mjc2NzEsImV4cCI6MjA5NzEwMzY3MX0.QvRzkbp13kDZr9r1mA7El7E86uJP4Ptzx-wkjdYEpUw")
+SUPABASE_URL      = CFG.get("supabase_url", "https://mjgdkyjodvsjxywtdqfu.supabase.co")
+SUPABASE_ANON_KEY = CFG.get("supabase_anon_key", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZ2RreWpvZHZzanh5d3RkcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzE3ODksImV4cCI6MjA5NzEwNzc4OX0.JQrgThmhspokUEo4ODhFVOE_oQnqPim-N0961BIrr4Y")
 HIDEN_AUTH_KEY     = CFG.get("hiden_auth_key", "ilovenrattingppl")
 
 C_DIM="\033[2m"; C_RED="\033[31m"; C_GRN="\033[32m"; C_YEL="\033[33m"
