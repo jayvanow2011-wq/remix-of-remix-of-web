@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash, randomBytes } from "crypto";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const RegisterSchema = z.object({
   enrollment_code: z.string().min(8).max(64).regex(/^[a-zA-Z0-9_-]+$/),
@@ -29,6 +28,7 @@ export const Route = createFileRoute("/api/public/agent/register")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         let body: unknown;
         try {
           body = await request.json();

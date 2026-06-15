@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash } from "crypto";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const Schema = z.object({
   device_id: z.string().uuid(),
@@ -23,6 +22,7 @@ export const Route = createFileRoute("/api/public/agent/poll")({
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
       POST: async ({ request }) => {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         let body: unknown;
         try {
           body = await request.json();
@@ -42,13 +42,11 @@ export const Route = createFileRoute("/api/public/agent/poll")({
           return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
         }
 
-        // Mark this device alive on poll
         await supabaseAdmin
           .from("devices")
           .update({ is_online: true, last_seen: new Date().toISOString() })
           .eq("id", device_id);
 
-        // Atomically claim pending commands
         const { data: pending } = await supabaseAdmin
           .from("commands")
           .select("id, action, payload")
