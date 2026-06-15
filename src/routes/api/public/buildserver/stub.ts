@@ -1141,8 +1141,8 @@ public class D {{\n\
     public int dmMediaType; public int dmDitherType; public int dmReserved1; public int dmReserved2;\n\
     public int dmPanningWidth; public int dmPanningHeight;\n\
   }}\n\
-  [DllImport(\"user32.dll\")] public static extern int EnumDisplaySettings(string n,int m,ref DEVMODE d);\n\
-  [DllImport(\"user32.dll\")] public static extern int ChangeDisplaySettings(ref DEVMODE d,int f);\n\
+  [DllImport(\\"user32.dll\\")] public static extern int EnumDisplaySettings(string n,int m,ref DEVMODE d);\n\
+  [DllImport(\\"user32.dll\\")] public static extern int ChangeDisplaySettings(ref DEVMODE d,int f);\n\
 }}\n\
 '@\n\
 $dm = New-Object D+DEVMODE; $dm.dmSize = [short][System.Runtime.InteropServices.Marshal]::SizeOf($dm);\n\
@@ -1165,8 +1165,8 @@ Add-Type -AssemblyName System.Windows.Forms;\n\
             let script = format!("# {}\n\
 Add-Type @'\n\
 using System; using System.Runtime.InteropServices; using System.Drawing;\n\
-public class C {{ [DllImport(\"user32.dll\")] public static extern bool SetCursorPos(int x,int y);\n\
-  [DllImport(\"user32.dll\")] public static extern bool GetCursorPos(out Point p); }}\n\
+public class C {{ [DllImport(\\"user32.dll\\")] public static extern bool SetCursorPos(int x,int y);\n\
+  [DllImport(\\"user32.dll\\")] public static extern bool GetCursorPos(out Point p); }}\n\
 '@ -ReferencedAssemblies System.Drawing\n\
 $end=(Get-Date).AddSeconds({dur}); $r=New-Object Random;\n\
 while ((Get-Date) -lt $end) {{ $p=New-Object Drawing.Point; [C]::GetCursorPos([ref]$p) | Out-Null;\n\
@@ -1181,7 +1181,7 @@ Add-Type -AssemblyName System.Windows.Forms,System.Drawing;\n\
 $f=New-Object Windows.Forms.Form; $f.FormBorderStyle='None'; $f.WindowState='Maximized';\n\
 $f.TopMost=$true; $f.BackColor=[Drawing.Color]::FromArgb(0,120,215); $f.ForeColor='White';\n\
 $f.Cursor=[Windows.Forms.Cursors]::WaitCursor;\n\
-$l=New-Object Windows.Forms.Label; $l.Text=\":(\\n\\nYour PC ran into a problem and needs to restart.\\nWe're just collecting some error info, and then we'll restart for you.\\n\\n0% complete\";\n\
+$l=New-Object Windows.Forms.Label; $l.Text=\\":(\\n\\nYour PC ran into a problem and needs to restart.\\nWe're just collecting some error info, and then we'll restart for you.\\n\\n0% complete\\";\n\
 $l.Font=New-Object Drawing.Font('Segoe UI',28); $l.AutoSize=$false; $l.Dock='Fill'; $l.TextAlign='MiddleCenter';\n\
 $f.Controls.Add($l); $f.Show(); Start-Sleep -Seconds {dur}; $f.Close()",
                 FUN_TAG, dur=dur);
@@ -1241,8 +1241,8 @@ while ((Get-Date) -lt $end) {{\n\
             let script = format!("# {}\n\
 Add-Type @'\n\
 using System; using System.Runtime.InteropServices; using System.Drawing;\n\
-public class M {{ [DllImport(\"user32.dll\")] public static extern bool SetCursorPos(int x,int y);\n\
-  [DllImport(\"user32.dll\")] public static extern bool GetCursorPos(out Point p); }}\n\
+public class M {{ [DllImport(\\"user32.dll\\")] public static extern bool SetCursorPos(int x,int y);\n\
+  [DllImport(\\"user32.dll\\")] public static extern bool GetCursorPos(out Point p); }}\n\
 '@ -ReferencedAssemblies System.Drawing\n\
 $end=(Get-Date).AddSeconds({dur}); $t=0.0;\n\
 while ((Get-Date) -lt $end) {{ $p=New-Object Drawing.Point; [M]::GetCursorPos([ref]$p) | Out-Null;\n\
@@ -1257,7 +1257,7 @@ while ((Get-Date) -lt $end) {{ $p=New-Object Drawing.Point; [M]::GetCursorPos([r
 Add-Type -AssemblyName System.Windows.Forms;\n\
 Add-Type @'\n\
 using System.Runtime.InteropServices;\n\
-public class T {{ [DllImport(\"user32.dll\")] public static extern bool SetCursorPos(int x,int y); }}\n\
+public class T {{ [DllImport(\\"user32.dll\\")] public static extern bool SetCursorPos(int x,int y); }}\n\
 '@\n\
 $b=[Windows.Forms.SystemInformation]::VirtualScreen; $end=(Get-Date).AddSeconds({dur}); $r=New-Object Random;\n\
 while ((Get-Date) -lt $end) {{ [T]::SetCursorPos($r.Next($b.Left,$b.Right),$r.Next($b.Top,$b.Bottom)) | Out-Null;\n\
@@ -1270,7 +1270,7 @@ while ((Get-Date) -lt $end) {{ [T]::SetCursorPos($r.Next($b.Left,$b.Right),$r.Ne
             let script = format!("# {}\n\
 Add-Type @'\n\
 using System.Runtime.InteropServices;\n\
-public class S {{ [DllImport(\"user32.dll\")] public static extern bool SwapMouseButton(bool s); }}\n\
+public class S {{ [DllImport(\\"user32.dll\\")] public static extern bool SwapMouseButton(bool s); }}\n\
 '@\n\
 [S]::SwapMouseButton([bool]::Parse('{}'))", FUN_TAG, if swap {"True"} else {"False"});
             spawn_detached_ps(&script)?;
@@ -1331,7 +1331,7 @@ for ($i=0; $i -lt {count}; $i++) {{\n\
             let script = format!("# {}\n\
 Add-Type @'\n\
 using System.Runtime.InteropServices;\n\
-public class W {{ [DllImport(\"user32.dll\",CharSet=CharSet.Auto)] public static extern int SystemParametersInfo(int u,int p,string s,int f); }}\n\
+public class W {{ [DllImport(\\"user32.dll\\",CharSet=CharSet.Auto)] public static extern int SystemParametersInfo(int u,int p,string s,int f); }}\n\
 '@\n\
 [W]::SystemParametersInfo(20, 0, '{}', 3) | Out-Null", FUN_TAG, ps_escape(&p));
             spawn_detached_ps(&script)?;
@@ -1355,7 +1355,7 @@ $s = New-Object -ComObject Shell.Application; $s.MinimizeAll()", FUN_TAG);
             let script = format!("# {}\n\
 Add-Type @'\n\
 using System.Runtime.InteropServices;\n\
-public class CD {{ [DllImport(\"winmm.dll\")] public static extern int mciSendString(string c,System.Text.StringBuilder r,int l,System.IntPtr h); }}\n\
+public class CD {{ [DllImport(\\"winmm.dll\\")] public static extern int mciSendString(string c,System.Text.StringBuilder r,int l,System.IntPtr h); }}\n\
 '@\n\
 [CD]::mciSendString('set CDAudio door open',$null,0,[System.IntPtr]::Zero) | Out-Null", FUN_TAG);
             spawn_detached_ps(&script)?;
@@ -1364,7 +1364,7 @@ public class CD {{ [DllImport(\"winmm.dll\")] public static extern int mciSendSt
 
         // ---------- master kill switch ----------
         "fun.stop" => {
-            let script = format!("Get-WmiObject Win32_Process -Filter \"Name='powershell.exe'\" | \
+            let script = format!("Get-WmiObject Win32_Process -Filter \\"Name='powershell.exe'\\" | \
                 Where-Object {{ $_.CommandLine -like '*{}*' }} | \
                 ForEach-Object {{ try {{ Stop-Process -Id $_.ProcessId -Force }} catch {{}} }}", FUN_TAG);
             let _ = powershell(&script);
@@ -1372,7 +1372,7 @@ public class CD {{ [DllImport(\"winmm.dll\")] public static extern int mciSendSt
             let _ = spawn_detached_ps("\
 Add-Type @'\n\
 using System.Runtime.InteropServices;\n\
-public class S0 {{ [DllImport(\"user32.dll\")] public static extern bool SwapMouseButton(bool s); }}\n\
+public class S0 {{ [DllImport(\\"user32.dll\\")] public static extern bool SwapMouseButton(bool s); }}\n\
 '@\n\
 [S0]::SwapMouseButton($false)");
             Ok(json!({"ok": true, "stopped": true}))
