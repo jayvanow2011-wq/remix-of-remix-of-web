@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { supabaseAdmin } from '@/integrations/supabase/client.server'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Rust agent stub served to the build server.
@@ -2120,6 +2119,7 @@ panic = "abort"
 async function verifyBuildserverKey(request: Request): Promise<boolean> {
   const key = request.headers.get('x-buildserver-key')
   if (!key) return false
+  const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
   const { data } = await supabaseAdmin
     .from('build_server_config')
     .select('id')
