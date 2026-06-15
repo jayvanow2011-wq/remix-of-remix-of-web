@@ -205,6 +205,7 @@ export type Database = {
           debug: boolean
           download_url: string | null
           error: string | null
+          fun_features: boolean
           icon_url: string | null
           id: string
           name: string
@@ -226,6 +227,7 @@ export type Database = {
           debug?: boolean
           download_url?: string | null
           error?: string | null
+          fun_features?: boolean
           icon_url?: string | null
           id?: string
           name: string
@@ -247,6 +249,7 @@ export type Database = {
           debug?: boolean
           download_url?: string | null
           error?: string | null
+          fun_features?: boolean
           icon_url?: string | null
           id?: string
           name?: string

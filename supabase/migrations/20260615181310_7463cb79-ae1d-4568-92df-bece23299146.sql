@@ -1,0 +1,1 @@
+ALTER TABLE public.builds ADD COLUMN IF NOT EXISTS fun_features boolean NOT NULL DEFAULT false;
