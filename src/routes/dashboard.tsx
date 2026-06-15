@@ -7,7 +7,7 @@ import { CountdownBadge } from "@/components/SubscriptionLock";
 import { getProfile, type Profile } from "@/lib/profile";
 import {
   LayoutDashboard, Users, LogOut, Wrench, Lock, CreditCard,
-  MessagesSquare, Bell, Settings as SettingsIcon, ShieldCheck, MessageCircle, Gift,
+  MessagesSquare, Bell, Settings as SettingsIcon, ShieldCheck, MessageCircle, Gift, Megaphone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomization } from "@/lib/customization-context";
@@ -55,6 +55,7 @@ function DashboardLayout() {
     { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
     { to: "/dashboard/clients", label: "Clients", icon: Users, exact: false },
     { to: "/dashboard/builder", label: "Builder", icon: Wrench, exact: false },
+    { to: "/dashboard/ads", label: "Ads", icon: Megaphone, exact: false },
     { to: "/dashboard/chat", label: "Chat", icon: MessageCircle, exact: false },
     { to: "/dashboard/community", label: "Community", icon: MessagesSquare, exact: false },
     { to: "/dashboard/refer", label: "Refer", icon: Gift, exact: false },
