@@ -97,6 +97,18 @@ function ClientsPage() {
     const channel = supabase
       .channel("devices-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "devices" }, load)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "devices", filter: `owner_user_id=eq.${user.id}` },
+        (payload) => {
+          const row = payload.new as Partial<Device>;
+          const name = row.pc_name || row.device_name || "new client";
+          toast.success(`🎉 new client online`, {
+            description: name,
+            position: "top-right",
+          });
+        },
+      )
       .subscribe();
 
     return () => {
