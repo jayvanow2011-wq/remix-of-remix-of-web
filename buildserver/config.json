@@ -1,6 +1,6 @@
 {
   "buildserver_key": "bsk_6695a4116970167386dbb07e0588f06c0893c8e5a95823428f5b3e402e2703b0",
-  "frontend_url": "https://project--8a02ea85-360c-49b4-a7be-56a542ae871e-dev.lovable.app",
+  "frontend_url": "https://project--7b74ebe1-139a-493e-94a5-3e52cba1d8d3-dev.lovable.app",
   "poll_seconds": 4,
   "rust_target": "x86_64-pc-windows-gnu",
   "supabase_url": "https://dqnhmjnmczsjdgtpuglu.supabase.co",

