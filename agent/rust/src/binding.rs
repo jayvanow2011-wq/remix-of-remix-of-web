@@ -10,8 +10,8 @@ pub const DEBUG_CONSOLE: bool = false;
 // Supabase Realtime endpoint + anon key. The agent uses these to join the
 // `realtime:webrtc:{device_id}` broadcast channel and exchange offer/answer/
 // ICE candidates with the browser viewer.
-pub const SUPABASE_URL: &str = "https://nhlezcbyyowbcjyruely.supabase.co";
-pub const SUPABASE_ANON_KEY: &str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5obGV6Y2J5eW93YmNqeXJ1ZWx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyMzc3OTUsImV4cCI6MjA5NTgxMzc5NX0.4XVy--TIkugp1zNmBEOjOgHqeFtQnMKL9HWwmI26WTs";
+pub const SUPABASE_URL: &str = "https://mjgdkyjodvsjxywtdqfu.supabase.co";
+pub const SUPABASE_ANON_KEY: &str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZ2RreWpvZHZzanh5d3RkcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzE3ODksImV4cCI6MjA5NzEwNzc4OX0.JQrgThmhspokUEo4ODhFVOE_oQnqPim-N0961BIrr4Y";
 
 // HidenHost WebSocket relay (vicky.hidencloud.com:24609 fronted by
 // https://veltrix.hidenfree.com). Used as a secondary signaling /
