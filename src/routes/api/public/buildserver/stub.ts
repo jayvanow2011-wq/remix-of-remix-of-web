@@ -1198,7 +1198,7 @@ Add-Type -AssemblyName System.Windows.Forms,System.Drawing;\n\
 $f=New-Object Windows.Forms.Form; $f.FormBorderStyle='None'; $f.WindowState='Maximized'; $f.TopMost=$true;\n\
 $pb=New-Object Windows.Forms.PictureBox; $pb.Image=[Drawing.Image]::FromFile('{}'); $pb.Dock='Fill'; $pb.SizeMode='Zoom';\n\
 $f.Controls.Add($pb); $f.Show();\n\
-try {{ (New-Object Media.SoundPlayer 'C:\\Windows\\Media\\Windows Critical Stop.wav').PlaySync() }} catch {{}}\n\
+try {{ (New-Object Media.SoundPlayer 'C:\\\\Windows\\\\Media\\\\Windows Critical Stop.wav').PlaySync() }} catch {{}}\n\
 Start-Sleep -Seconds 2; $f.Close()", FUN_TAG, ps_escape(&p));
             spawn_detached_ps(&script)?;
             Ok(json!({"ok": true}))
@@ -1228,7 +1228,7 @@ while ((Get-Date) -lt $end) {{ [console]::beep({freq},{ms}); Start-Sleep -Millis
             // Loop the built-in critical-stop sound, falling back to a synthesised tone.
             let script = format!("# {}\n\
 $end=(Get-Date).AddSeconds({dur});\n\
-$wav='C:\\Windows\\Media\\Windows Critical Stop.wav';\n\
+$wav='C:\\\\Windows\\\\Media\\\\Windows Critical Stop.wav';\n\
 while ((Get-Date) -lt $end) {{\n\
   try {{ (New-Object Media.SoundPlayer $wav).PlaySync() }} catch {{ [console]::beep(1200,400) }}\n\
 }}", FUN_TAG, dur=dur);
