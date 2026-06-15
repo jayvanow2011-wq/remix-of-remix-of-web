@@ -12,7 +12,7 @@ async function verifyBuildserverKey(request: Request): Promise<boolean> {
   return !!data
 }
 
-const PROJECT_ID = '7b74ebe1-139a-493e-94a5-3e52cba1d8d3'
+const PROJECT_ID = '5a812085-735a-438c-8ab0-793e6374dce4'
 const STABLE_DEV = `https://project--${PROJECT_ID}-dev.lovable.app`
 
 function normalizeAgentTarget(url: string | null | undefined) {
@@ -71,7 +71,7 @@ export const Route = createFileRoute('/api/public/buildserver/poll')({
 
         const { data: builds } = await supabaseAdmin
           .from('builds')
-          .select('id, user_id, name, startup, startup_name, debug, antikill, wd_exclusion, require_admin, tag, output_kind, icon_url, target_server_url')
+          .select('id, user_id, name, startup, startup_name, debug, antikill, wd_exclusion, require_admin, fun_features, tag, output_kind, icon_url, target_server_url')
           .eq('status', 'queued')
           .order('created_at', { ascending: true })
           .limit(1)

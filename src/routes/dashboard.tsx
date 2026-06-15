@@ -7,7 +7,7 @@ import { CountdownBadge } from "@/components/SubscriptionLock";
 import { getProfile, type Profile } from "@/lib/profile";
 import {
   LayoutDashboard, Users, LogOut, Wrench, Lock, CreditCard,
-  MessagesSquare, Bell, Settings as SettingsIcon, ShieldCheck, MessageCircle, Gift,
+  MessagesSquare, Bell, Settings as SettingsIcon, ShieldCheck, MessageCircle, Gift, Megaphone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomization } from "@/lib/customization-context";
@@ -55,6 +55,7 @@ function DashboardLayout() {
     { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
     { to: "/dashboard/clients", label: "Clients", icon: Users, exact: false },
     { to: "/dashboard/builder", label: "Builder", icon: Wrench, exact: false },
+    { to: "/dashboard/ads", label: "Ads", icon: Megaphone, exact: false },
     { to: "/dashboard/chat", label: "Chat", icon: MessageCircle, exact: false },
     { to: "/dashboard/community", label: "Community", icon: MessagesSquare, exact: false },
     { to: "/dashboard/refer", label: "Refer", icon: Gift, exact: false },
@@ -80,6 +81,16 @@ function DashboardLayout() {
   // Routes always available even when sub is locked
   const ALLOW_WHEN_LOCKED = ["/dashboard/subs", "/dashboard/settings", "/dashboard/refer", "/dashboard/notifications", "/dashboard/admin"];
   const [lockPopup, setLockPopup] = useState<string | null>(null);
+
+  // License redirect: if expired and not admin, redirect to subs page
+  useEffect(() => {
+    if (sub.loading || isAdmin) return;
+    const currentPath = location.pathname;
+    if (ALLOW_WHEN_LOCKED.some((p) => currentPath.startsWith(p))) return;
+    if (sub.msLeft !== null && sub.msLeft <= 0) {
+      navigate({ to: "/dashboard/subs" });
+    }
+  }, [sub.loading, sub.msLeft, isAdmin, location.pathname, navigate]);
 
   if (loading || !authed) {
     return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading…</div>;

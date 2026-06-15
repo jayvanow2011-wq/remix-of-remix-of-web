@@ -14,6 +14,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
 import { Route as DihRouteImport } from './routes/dih'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as FREERouteImport } from './routes/FREE'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
@@ -26,6 +27,7 @@ import { Route as DashboardClientsRouteImport } from './routes/dashboard.clients
 import { Route as DashboardChatRouteImport } from './routes/dashboard.chat'
 import { Route as DashboardBuilderRouteImport } from './routes/dashboard.builder'
 import { Route as DashboardBioRouteImport } from './routes/dashboard.bio'
+import { Route as DashboardAdsRouteImport } from './routes/dashboard.ads'
 import { Route as DashboardAdminRouteImport } from './routes/dashboard.admin'
 import { Route as ControlIdRouteImport } from './routes/control.$id'
 import { Route as DashboardClientsIdRouteImport } from './routes/dashboard.clients.$id'
@@ -68,6 +70,11 @@ const DihRoute = DihRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FREERoute = FREERouteImport.update({
+  id: '/FREE',
+  path: '/FREE',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -128,6 +135,11 @@ const DashboardBuilderRoute = DashboardBuilderRouteImport.update({
 const DashboardBioRoute = DashboardBioRouteImport.update({
   id: '/bio',
   path: '/bio',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardAdsRoute = DashboardAdsRouteImport.update({
+  id: '/ads',
+  path: '/ads',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardAdminRoute = DashboardAdminRouteImport.update({
@@ -232,6 +244,7 @@ const ApiPublicAuthDiscordCallbackRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/FREE': typeof FREERoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/dih': typeof DihRoute
   '/profile-setup': typeof ProfileSetupRoute
@@ -239,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/status': typeof StatusRoute
   '/control/$id': typeof ControlIdRoute
   '/dashboard/admin': typeof DashboardAdminRoute
+  '/dashboard/ads': typeof DashboardAdsRoute
   '/dashboard/bio': typeof DashboardBioRoute
   '/dashboard/builder': typeof DashboardBuilderRoute
   '/dashboard/chat': typeof DashboardChatRoute
@@ -269,12 +283,14 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/FREE': typeof FREERoute
   '/dih': typeof DihRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/signup': typeof SignupRoute
   '/status': typeof StatusRoute
   '/control/$id': typeof ControlIdRoute
   '/dashboard/admin': typeof DashboardAdminRoute
+  '/dashboard/ads': typeof DashboardAdsRoute
   '/dashboard/bio': typeof DashboardBioRoute
   '/dashboard/builder': typeof DashboardBuilderRoute
   '/dashboard/chat': typeof DashboardChatRoute
@@ -306,6 +322,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/FREE': typeof FREERoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/dih': typeof DihRoute
   '/profile-setup': typeof ProfileSetupRoute
@@ -313,6 +330,7 @@ export interface FileRoutesById {
   '/status': typeof StatusRoute
   '/control/$id': typeof ControlIdRoute
   '/dashboard/admin': typeof DashboardAdminRoute
+  '/dashboard/ads': typeof DashboardAdsRoute
   '/dashboard/bio': typeof DashboardBioRoute
   '/dashboard/builder': typeof DashboardBuilderRoute
   '/dashboard/chat': typeof DashboardChatRoute
@@ -345,6 +363,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/FREE'
     | '/dashboard'
     | '/dih'
     | '/profile-setup'
@@ -352,6 +371,7 @@ export interface FileRouteTypes {
     | '/status'
     | '/control/$id'
     | '/dashboard/admin'
+    | '/dashboard/ads'
     | '/dashboard/bio'
     | '/dashboard/builder'
     | '/dashboard/chat'
@@ -382,12 +402,14 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/FREE'
     | '/dih'
     | '/profile-setup'
     | '/signup'
     | '/status'
     | '/control/$id'
     | '/dashboard/admin'
+    | '/dashboard/ads'
     | '/dashboard/bio'
     | '/dashboard/builder'
     | '/dashboard/chat'
@@ -418,6 +440,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/FREE'
     | '/dashboard'
     | '/dih'
     | '/profile-setup'
@@ -425,6 +448,7 @@ export interface FileRouteTypes {
     | '/status'
     | '/control/$id'
     | '/dashboard/admin'
+    | '/dashboard/ads'
     | '/dashboard/bio'
     | '/dashboard/builder'
     | '/dashboard/chat'
@@ -456,6 +480,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FREERoute: typeof FREERoute
   DashboardRoute: typeof DashboardRouteWithChildren
   DihRoute: typeof DihRoute
   ProfileSetupRoute: typeof ProfileSetupRoute
@@ -515,6 +540,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/FREE': {
+      id: '/FREE'
+      path: '/FREE'
+      fullPath: '/FREE'
+      preLoaderRoute: typeof FREERouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -599,6 +631,13 @@ declare module '@tanstack/react-router' {
       path: '/bio'
       fullPath: '/dashboard/bio'
       preLoaderRoute: typeof DashboardBioRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/ads': {
+      id: '/dashboard/ads'
+      path: '/ads'
+      fullPath: '/dashboard/ads'
+      preLoaderRoute: typeof DashboardAdsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/admin': {
@@ -743,6 +782,7 @@ const DashboardClientsRouteWithChildren =
 
 interface DashboardRouteChildren {
   DashboardAdminRoute: typeof DashboardAdminRoute
+  DashboardAdsRoute: typeof DashboardAdsRoute
   DashboardBioRoute: typeof DashboardBioRoute
   DashboardBuilderRoute: typeof DashboardBuilderRoute
   DashboardChatRoute: typeof DashboardChatRoute
@@ -757,6 +797,7 @@ interface DashboardRouteChildren {
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAdminRoute: DashboardAdminRoute,
+  DashboardAdsRoute: DashboardAdsRoute,
   DashboardBioRoute: DashboardBioRoute,
   DashboardBuilderRoute: DashboardBuilderRoute,
   DashboardChatRoute: DashboardChatRoute,
@@ -775,6 +816,7 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FREERoute: FREERoute,
   DashboardRoute: DashboardRouteWithChildren,
   DihRoute: DihRoute,
   ProfileSetupRoute: ProfileSetupRoute,
@@ -801,13 +843,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

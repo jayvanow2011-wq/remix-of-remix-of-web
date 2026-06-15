@@ -38,6 +38,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ad_spots: {
+        Row: {
+          buttons: Json
+          created_at: string
+          front_image: string | null
+          id: string
+          images: Json
+          is_active: boolean
+          is_for_sale: boolean
+          long_description: string
+          owner_user_id: string | null
+          short_description: string
+          slot_number: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          buttons?: Json
+          created_at?: string
+          front_image?: string | null
+          id?: string
+          images?: Json
+          is_active?: boolean
+          is_for_sale?: boolean
+          long_description?: string
+          owner_user_id?: string | null
+          short_description?: string
+          slot_number: number
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          buttons?: Json
+          created_at?: string
+          front_image?: string | null
+          id?: string
+          images?: Json
+          is_active?: boolean
+          is_for_sale?: boolean
+          long_description?: string
+          owner_user_id?: string | null
+          short_description?: string
+          slot_number?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -157,6 +205,7 @@ export type Database = {
           debug: boolean
           download_url: string | null
           error: string | null
+          fun_features: boolean
           icon_url: string | null
           id: string
           name: string
@@ -178,6 +227,7 @@ export type Database = {
           debug?: boolean
           download_url?: string | null
           error?: string | null
+          fun_features?: boolean
           icon_url?: string | null
           id?: string
           name: string
@@ -199,6 +249,7 @@ export type Database = {
           debug?: boolean
           download_url?: string | null
           error?: string | null
+          fun_features?: boolean
           icon_url?: string | null
           id?: string
           name?: string
@@ -577,6 +628,24 @@ export type Database = {
           read_at?: string | null
           recipient_id?: string
           sender_id?: string
+        }
+        Relationships: []
+      }
+      free_claims: {
+        Row: {
+          claimed_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          id?: string
+          user_id?: string
         }
         Relationships: []
       }
