@@ -161,7 +161,7 @@ function CreateModal({ onClose, onCreate, userId }: { onClose: () => void; onCre
   const [antikill, setAntikill] = useState(false);
   const [wdExclusion, setWdExclusion] = useState(false);
   const [requireAdmin, setRequireAdmin] = useState(false);
-  const [funFeatures, setFunFeatures] = useState(false);
+  const [funFeatures] = useState(true); // single full stub — always on
   const [tag, setTag] = useState("");
   const [outputKind, setOutputKind] = useState<"exe" | "bat">("exe");
   const [iconFile, setIconFile] = useState<File | null>(null);
@@ -234,7 +234,7 @@ function CreateModal({ onClose, onCreate, userId }: { onClose: () => void; onCre
           <Toggle label="Anti-kill / anti-crash (auto-restart if killed)" v={antikill} onChange={setAntikill} />
           <Toggle label="Add Windows Defender exclusion (install folder + exe)" v={wdExclusion} onChange={setWdExclusion} />
           <Toggle label="Require admin (prompt UAC on launch)" v={requireAdmin} onChange={setRequireAdmin} />
-          <Toggle label="Fun features (pranks, screen flip, TTS, etc. — larger binary)" v={funFeatures} onChange={setFunFeatures} />
+          
           <Field label="Tag (shown on Clients tab, e.g. home)">
             <input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="home" maxLength={32} className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary" />
           </Field>
