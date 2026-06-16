@@ -233,7 +233,6 @@ function ControlPage() {
                 <div className={tab === "processes" ? "" : "hidden"}><ProcessesPanel deviceId={id} /></div>
                 <div className={tab === "system" ? "" : "hidden"}><SystemPanel deviceId={id} /></div>
                 <div className={tab === "ai" ? "" : "hidden"}><AIPanel deviceId={id} /></div>
-                <div className={tab === "fun" ? "" : "hidden"}><FunPanel deviceId={id} /></div>
                 {tab === "info" && <InfoPanel device={device} metric={metric} />}
               </Suspense>
             </ClientOnly>
