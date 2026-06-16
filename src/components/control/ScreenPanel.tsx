@@ -20,10 +20,9 @@ export function ScreenPanel({ deviceId }: { deviceId: string }) {
   const { send } = useDeviceCommands(deviceId);
   const { connected: relayConnected, send: relaySend, onMessage } = useRelaySocket(deviceId);
   const [streaming, setStreaming] = useState(false);
-  const [frame, setFrame] = useState<string | null>(null);
+  const [hasFrame, setHasFrame] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [fps, setFps] = useState(0);
-  const [frameCount, setFrameCount] = useState(0);
   const [transport, setTransport] = useState<"idle" | "relay" | "http">("idle");
   const [mouseControl, setMouseControl] = useState(false);
   const [keyboardControl, setKeyboardControl] = useState(false);
@@ -41,17 +40,45 @@ export function ScreenPanel({ deviceId }: { deviceId: string }) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const lastMoveTsRef = useRef(0);
   const mouseDownRef = useRef(false);
+  const frameCountRef = useRef(0);
+  const lastTsRef = useRef<number>(0);
+  const pendingFrameRef = useRef<string | null>(null);
+  const rafScheduledRef = useRef(false);
 
   // Refs so listeners always see current state without re-subscribing.
   const transportRef = useRef(transport);
   useEffect(() => { transportRef.current = transport; }, [transport]);
+  const hasFrameRef = useRef(false);
+
+  // Paint the most recent frame via rAF — coalesces bursts and avoids React
+  // re-renders per frame (huge FPS win vs setState on every JPEG).
+  const flushFrame = useCallback(() => {
+    rafScheduledRef.current = false;
+    const b64 = pendingFrameRef.current;
+    if (!b64) return;
+    pendingFrameRef.current = null;
+    const img = imgRef.current;
+    if (img) img.src = `data:image/jpeg;base64,${b64}`;
+    if (!hasFrameRef.current) {
+      hasFrameRef.current = true;
+      setHasFrame(true);
+    }
+  }, []);
+
+  const pushFrame = useCallback((b64: string, ts?: number) => {
+    pendingFrameRef.current = b64;
+    frameCountRef.current++;
+    lastTsRef.current = ts ?? Date.now();
+    if (!rafScheduledRef.current) {
+      rafScheduledRef.current = true;
+      requestAnimationFrame(flushFrame);
+    }
+  }, [flushFrame]);
 
   // --- Realtime frames over the always-on WS relay ---
-  // Subscribe ONCE — re-subscribing on `streaming` churn drops frames.
   useEffect(() => {
     let firstLogged = false;
     const unsub = onMessage((msg) => {
-      // Agent → relay envelope: { type, payload, from: "agent" }
       if (msg.type !== "frame" && msg.type !== "screen-frame") return;
       const b64 = msg.payload?.jpeg_b64;
       if (!b64) return;
@@ -60,19 +87,13 @@ export function ScreenPanel({ deviceId }: { deviceId: string }) {
         // eslint-disable-next-line no-console
         console.log("[screen] first WS frame received", { bytes: b64.length });
       }
-      setFrame(b64);
-      setUpdatedAt(
-        typeof msg.payload?.ts === "number"
-          ? new Date(msg.payload.ts).toISOString()
-          : new Date().toISOString(),
-      );
-      setFrameCount((c) => c + 1);
+      pushFrame(b64, typeof msg.payload?.ts === "number" ? msg.payload.ts : undefined);
       if (transportRef.current !== "relay") setTransport("relay");
     });
     return unsub;
-  }, [onMessage]);
+  }, [onMessage, pushFrame]);
 
-  // --- Fallback: Supabase Realtime broadcast (used only when WS relay isn't delivering). ---
+  // --- Fallback: Supabase Realtime broadcast ---
   useEffect(() => {
     const topic = `device-frames-${deviceId}`;
     const ch = supabase
@@ -80,22 +101,19 @@ export function ScreenPanel({ deviceId }: { deviceId: string }) {
       .on("broadcast", { event: "screen" }, (msg: any) => {
         const b64: string | undefined = msg?.payload?.jpeg_b64;
         if (!b64) return;
-        setFrame(b64);
-        setUpdatedAt(msg.payload?.ts ?? new Date().toISOString());
-        setFrameCount((c) => c + 1);
+        pushFrame(b64);
         if (transportRef.current !== "relay") setTransport("http");
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [deviceId]);
+  }, [deviceId, pushFrame]);
 
-  // FPS counter — ref-based so it doesn't restart every frame.
-  const frameCountRef = useRef(0);
-  useEffect(() => { frameCountRef.current = frameCount; }, [frameCount]);
+  // FPS + updatedAt tick once a second.
   useEffect(() => {
     const t = setInterval(() => {
       setFps(frameCountRef.current);
-      setFrameCount(0);
+      frameCountRef.current = 0;
+      if (lastTsRef.current) setUpdatedAt(new Date(lastTsRef.current).toISOString());
     }, 1000);
     return () => clearInterval(t);
   }, []);
@@ -345,50 +363,51 @@ export function ScreenPanel({ deviceId }: { deviceId: string }) {
         </div>
       </div>
 
-      {/* Viewport */}
+      {/* Viewport — img is always mounted so the ref stays stable and
+          src updates are imperative (no React render per frame). */}
       <div className="group relative overflow-hidden rounded-xl border border-border/60 bg-black/40">
-        {frame ? (
-          <div
-            ref={overlayRef}
-            className="relative select-none touch-none"
-            onPointerDown={onImgPointerDown}
-            onPointerMove={onImgPointerMove}
-            onPointerUp={onImgPointerUp}
-            onPointerCancel={onImgPointerUp}
-            onWheel={onImgWheel}
-            onContextMenu={onImgContextMenu}
-          >
-            <img
-              ref={imgRef}
-              id="remote-screen-img"
-              src={`data:image/jpeg;base64,${frame}`}
-              alt="Remote screen"
-              className="block w-full pointer-events-none"
-              draggable={false}
-            />
-            {strokes.length > 0 && (
-              <svg className="pointer-events-none absolute inset-0 h-full w-full">
-                {strokes.map((s, i) => (
-                  <polyline
-                    key={i}
-                    points={s.points.map((p) => `${p.xRel * 100}%,${p.yRel * 100}%`).join(" ")}
-                    fill="none"
-                    stroke={s.color}
-                    strokeWidth={s.width}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                ))}
-              </svg>
-            )}
-          </div>
-        ) : (
-          <div className="flex h-[480px] items-center justify-center text-sm text-muted-foreground">
-            No screen frame yet — click Start to begin streaming.
-          </div>
-        )}
+        <div
+          ref={overlayRef}
+          className="relative select-none touch-none"
+          onPointerDown={onImgPointerDown}
+          onPointerMove={onImgPointerMove}
+          onPointerUp={onImgPointerUp}
+          onPointerCancel={onImgPointerUp}
+          onWheel={onImgWheel}
+          onContextMenu={onImgContextMenu}
+          style={{ minHeight: hasFrame ? undefined : 480 }}
+        >
+          <img
+            ref={imgRef}
+            id="remote-screen-img"
+            alt="Remote screen"
+            className={`block w-full pointer-events-none ${hasFrame ? "" : "hidden"}`}
+            draggable={false}
+          />
+          {!hasFrame && (
+            <div className="flex h-[480px] items-center justify-center text-sm text-muted-foreground">
+              No screen frame yet — click Start to begin streaming.
+            </div>
+          )}
+          {hasFrame && strokes.length > 0 && (
+            <svg className="pointer-events-none absolute inset-0 h-full w-full">
+              {strokes.map((s, i) => (
+                <polyline
+                  key={i}
+                  points={s.points.map((p) => `${p.xRel * 100}%,${p.yRel * 100}%`).join(" ")}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={s.width}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))}
+            </svg>
+          )}
+        </div>
       </div>
+
 
       {/* Clipboard */}
       <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card/60 p-3 backdrop-blur-xl">
