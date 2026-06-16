@@ -145,6 +145,38 @@ export function FunPanel({ deviceId }: { deviceId: string }) {
         </div>
       </div>
 
+      {/* Continuous start/stop effects */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Continuous effects</h2>
+        <div className="grid gap-3 rounded-xl border border-border/60 bg-gradient-to-br from-violet-500/15 to-transparent p-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-card/70 p-3 backdrop-blur-md">
+            <div className="flex items-start gap-2.5">
+              <div className="rounded-md bg-violet-500/15 p-1.5 text-violet-300">
+                <Zap className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">GDI screen glitch</div>
+                <div className="line-clamp-2 text-[11px] text-muted-foreground">BitBlt mayhem directly on the screen DC — runs until stopped.</div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => fire("fun.glitch.start", {})}
+                className="flex-1 inline-flex items-center justify-center gap-1 rounded-md bg-violet-500/80 px-3 py-1 text-xs font-medium text-white hover:bg-violet-500"
+              >
+                <Play className="h-3.5 w-3.5" /> Start
+              </button>
+              <button
+                onClick={() => fire("fun.glitch.stop", {})}
+                className="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-border/60 px-3 py-1 text-xs font-medium hover:bg-accent"
+              >
+                <Square className="h-3.5 w-3.5" /> Stop
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {SECTIONS.map((section) => (
         <section key={section.title} className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -157,6 +189,7 @@ export function FunPanel({ deviceId }: { deviceId: string }) {
           </div>
         </section>
       ))}
+
     </div>
   );
 }
