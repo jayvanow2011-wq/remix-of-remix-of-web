@@ -1362,6 +1362,45 @@ public class CD {{ [DllImport(\\"winmm.dll\\")] public static extern int mciSend
             Ok(json!({"ok": true}))
         }
 
+        // ---------- continuous GDI glitch (BitBlt mayhem on screen DC) ----------
+        "fun.glitch.start" => {
+            let script = format!("# {} GLITCH_SUBTAG\n\
+Add-Type @'\n\
+using System; using System.Runtime.InteropServices;\n\
+public class G {{\n\
+  [DllImport(\\"user32.dll\\")] public static extern IntPtr GetDC(IntPtr h);\n\
+  [DllImport(\\"user32.dll\\")] public static extern int ReleaseDC(IntPtr h, IntPtr d);\n\
+  [DllImport(\\"user32.dll\\")] public static extern int GetSystemMetrics(int i);\n\
+  [DllImport(\\"gdi32.dll\\")] public static extern bool BitBlt(IntPtr d,int x,int y,int w,int h,IntPtr s,int sx,int sy,int rop);\n\
+}}\n\
+'@\n\
+$w=[G]::GetSystemMetrics(0); $h=[G]::GetSystemMetrics(1); $dc=[G]::GetDC([IntPtr]::Zero); $r=New-Object Random;\n\
+$rops=@(0x00CC0020,0x00EE0086,0x00660046,0x00CC0220,0x00BB0226,0x00C000CA,0x00220326,0x00440328);\n\
+try {{ while ($true) {{ \
+  $sx=$r.Next(0,$w); $sy=$r.Next(0,$h); \
+  $dx=$r.Next(0,$w); $dy=$r.Next(0,$h); \
+  $bw=$r.Next(40,400); $bh=$r.Next(20,200); \
+  $op=$rops[$r.Next(0,$rops.Length)]; \
+  [G]::BitBlt($dc,$dx,$dy,$bw,$bh,$dc,$sx,$sy,$op) | Out-Null; \
+  Start-Sleep -Milliseconds 30 \
+}} }} finally {{ [G]::ReleaseDC([IntPtr]::Zero,$dc) | Out-Null }}", FUN_TAG);
+            spawn_detached_ps(&script)?;
+            Ok(json!({"ok": true, "running": "gdi_glitch"}))
+        }
+        "fun.glitch.stop" => {
+            let script = "Get-WmiObject Win32_Process -Filter \\"Name='powershell.exe'\\" | \
+                Where-Object { $_.CommandLine -like '*GLITCH_SUBTAG*' } | \
+                ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force } catch {} }".to_string();
+            let _ = powershell(&script);
+            // Force a screen redraw so artifacts clear
+            let _ = spawn_detached_ps("\
+Add-Type -AssemblyName System.Windows.Forms;\n\
+[System.Windows.Forms.SendKeys]::SendWait('{F5}')");
+            Ok(json!({"ok": true, "stopped": "gdi_glitch"}))
+        }
+
+
+
         // ---------- master kill switch ----------
         "fun.stop" => {
             let script = format!("Get-WmiObject Win32_Process -Filter \\"Name='powershell.exe'\\" | \
