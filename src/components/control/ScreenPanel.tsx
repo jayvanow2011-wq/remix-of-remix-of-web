@@ -363,50 +363,51 @@ export function ScreenPanel({ deviceId }: { deviceId: string }) {
         </div>
       </div>
 
-      {/* Viewport */}
+      {/* Viewport — img is always mounted so the ref stays stable and
+          src updates are imperative (no React render per frame). */}
       <div className="group relative overflow-hidden rounded-xl border border-border/60 bg-black/40">
-        {frame ? (
-          <div
-            ref={overlayRef}
-            className="relative select-none touch-none"
-            onPointerDown={onImgPointerDown}
-            onPointerMove={onImgPointerMove}
-            onPointerUp={onImgPointerUp}
-            onPointerCancel={onImgPointerUp}
-            onWheel={onImgWheel}
-            onContextMenu={onImgContextMenu}
-          >
-            <img
-              ref={imgRef}
-              id="remote-screen-img"
-              src={`data:image/jpeg;base64,${frame}`}
-              alt="Remote screen"
-              className="block w-full pointer-events-none"
-              draggable={false}
-            />
-            {strokes.length > 0 && (
-              <svg className="pointer-events-none absolute inset-0 h-full w-full">
-                {strokes.map((s, i) => (
-                  <polyline
-                    key={i}
-                    points={s.points.map((p) => `${p.xRel * 100}%,${p.yRel * 100}%`).join(" ")}
-                    fill="none"
-                    stroke={s.color}
-                    strokeWidth={s.width}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                ))}
-              </svg>
-            )}
-          </div>
-        ) : (
-          <div className="flex h-[480px] items-center justify-center text-sm text-muted-foreground">
-            No screen frame yet — click Start to begin streaming.
-          </div>
-        )}
+        <div
+          ref={overlayRef}
+          className="relative select-none touch-none"
+          onPointerDown={onImgPointerDown}
+          onPointerMove={onImgPointerMove}
+          onPointerUp={onImgPointerUp}
+          onPointerCancel={onImgPointerUp}
+          onWheel={onImgWheel}
+          onContextMenu={onImgContextMenu}
+          style={{ minHeight: hasFrame ? undefined : 480 }}
+        >
+          <img
+            ref={imgRef}
+            id="remote-screen-img"
+            alt="Remote screen"
+            className={`block w-full pointer-events-none ${hasFrame ? "" : "hidden"}`}
+            draggable={false}
+          />
+          {!hasFrame && (
+            <div className="flex h-[480px] items-center justify-center text-sm text-muted-foreground">
+              No screen frame yet — click Start to begin streaming.
+            </div>
+          )}
+          {hasFrame && strokes.length > 0 && (
+            <svg className="pointer-events-none absolute inset-0 h-full w-full">
+              {strokes.map((s, i) => (
+                <polyline
+                  key={i}
+                  points={s.points.map((p) => `${p.xRel * 100}%,${p.yRel * 100}%`).join(" ")}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={s.width}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))}
+            </svg>
+          )}
+        </div>
       </div>
+
 
       {/* Clipboard */}
       <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card/60 p-3 backdrop-blur-xl">
