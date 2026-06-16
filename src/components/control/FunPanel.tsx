@@ -6,8 +6,10 @@ import {
   PartyPopper, FlipHorizontal2, Contrast, Activity, MonitorX, Ghost,
   Volume2, Megaphone, Music, MousePointerClick, Move3d, Repeat, Type, Keyboard,
   Bell, MessageSquare, ImageIcon, Globe, MinusSquare, Disc3, OctagonX,
+  Zap, Play, Square,
   LucideIcon,
 } from "lucide-react";
+
 
 /**
  * Fun / prank tab — fires `fun.*` actions on the remote agent.
