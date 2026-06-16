@@ -41,7 +41,7 @@ type Metric = {
   uptime_seconds: number | null;
 };
 
-type TabKey = "screen" | "camera" | "shell" | "files" | "processes" | "system" | "ai" | "fun" | "info";
+type TabKey = "screen" | "camera" | "shell" | "files" | "processes" | "system" | "ai" | "info";
 
 const TABS: Array<{ key: TabKey; label: string; icon: typeof Info }> = [
   { key: "screen", label: "Live Screen", icon: Monitor },
@@ -51,7 +51,6 @@ const TABS: Array<{ key: TabKey; label: string; icon: typeof Info }> = [
   { key: "processes", label: "Processes", icon: Cpu },
   { key: "system", label: "System", icon: Settings },
   { key: "ai", label: "AI Agent", icon: Sparkles },
-  { key: "fun", label: "Fun", icon: PartyPopper },
   { key: "info", label: "Info", icon: Info },
 ];
 
