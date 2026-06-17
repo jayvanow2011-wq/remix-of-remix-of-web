@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowLeft, Monitor, Info, Terminal, FileBox, Cpu, Settings, X, Camera, Activity, Sparkles } from "lucide-react";
+import { ArrowLeft, Monitor, Info, Terminal, FileBox, Cpu, Settings, X, Camera, Activity, Sparkles, PartyPopper } from "lucide-react";
 import { webrtcDiagnostics, type WebRtcDiagnostics } from "@/lib/webrtc-diagnostics";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -15,6 +15,7 @@ const ProcessesPanel = lazy(() => import("@/components/control/ProcessesPanel").
 const SystemPanel = lazy(() => import("@/components/control/SystemPanel").then(m => ({ default: m.SystemPanel })));
 const InfoPanel = lazy(() => import("@/components/control/InfoPanel").then(m => ({ default: m.InfoPanel })));
 const AIPanel = lazy(() => import("@/components/control/AIPanel").then(m => ({ default: m.AIPanel })));
+const FunPanel = lazy(() => import("@/components/control/FunPanel").then(m => ({ default: m.FunPanel })));
 
 export const Route = createFileRoute("/control/$id")({
   component: ControlPage,
@@ -41,7 +42,7 @@ type Metric = {
   uptime_seconds: number | null;
 };
 
-type TabKey = "screen" | "camera" | "shell" | "files" | "processes" | "system" | "ai" | "info";
+type TabKey = "screen" | "camera" | "shell" | "files" | "processes" | "system" | "ai" | "fun" | "info";
 
 const TABS: Array<{ key: TabKey; label: string; icon: typeof Info }> = [
   { key: "screen", label: "Live Screen", icon: Monitor },
@@ -51,6 +52,7 @@ const TABS: Array<{ key: TabKey; label: string; icon: typeof Info }> = [
   { key: "processes", label: "Processes", icon: Cpu },
   { key: "system", label: "System", icon: Settings },
   { key: "ai", label: "AI Agent", icon: Sparkles },
+  { key: "fun", label: "Fun", icon: PartyPopper },
   { key: "info", label: "Info", icon: Info },
 ];
 
@@ -233,6 +235,7 @@ function ControlPage() {
                 <div className={tab === "processes" ? "" : "hidden"}><ProcessesPanel deviceId={id} /></div>
                 <div className={tab === "system" ? "" : "hidden"}><SystemPanel deviceId={id} /></div>
                 <div className={tab === "ai" ? "" : "hidden"}><AIPanel deviceId={id} /></div>
+                <div className={tab === "fun" ? "" : "hidden"}><FunPanel deviceId={id} /></div>
                 {tab === "info" && <InfoPanel device={device} metric={metric} />}
               </Suspense>
             </ClientOnly>
