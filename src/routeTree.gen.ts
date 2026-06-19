@@ -31,6 +31,7 @@ import { Route as DashboardAdsRouteImport } from './routes/dashboard.ads'
 import { Route as DashboardAdminRouteImport } from './routes/dashboard.admin'
 import { Route as ControlIdRouteImport } from './routes/control.$id'
 import { Route as DashboardClientsIdRouteImport } from './routes/dashboard.clients.$id'
+import { Route as ApiPublicNowpaymentsWebhookRouteImport } from './routes/api/public/nowpayments/webhook'
 import { Route as ApiPublicBuildserverUploadRouteImport } from './routes/api/public/buildserver/upload'
 import { Route as ApiPublicBuildserverStubRouteImport } from './routes/api/public/buildserver/stub'
 import { Route as ApiPublicBuildserverStatusRouteImport } from './routes/api/public/buildserver/status'
@@ -157,6 +158,12 @@ const DashboardClientsIdRoute = DashboardClientsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => DashboardClientsRoute,
 } as any)
+const ApiPublicNowpaymentsWebhookRoute =
+  ApiPublicNowpaymentsWebhookRouteImport.update({
+    id: '/api/public/nowpayments/webhook',
+    path: '/api/public/nowpayments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicBuildserverUploadRoute =
   ApiPublicBuildserverUploadRouteImport.update({
     id: '/api/public/buildserver/upload',
@@ -277,6 +284,7 @@ export interface FileRoutesByFullPath {
   '/api/public/buildserver/status': typeof ApiPublicBuildserverStatusRoute
   '/api/public/buildserver/stub': typeof ApiPublicBuildserverStubRoute
   '/api/public/buildserver/upload': typeof ApiPublicBuildserverUploadRoute
+  '/api/public/nowpayments/webhook': typeof ApiPublicNowpaymentsWebhookRoute
   '/api/public/auth/discord/callback': typeof ApiPublicAuthDiscordCallbackRoute
   '/api/public/auth/discord/start': typeof ApiPublicAuthDiscordStartRoute
   '/api/public/builds/$id/download': typeof ApiPublicBuildsIdDownloadRoute
@@ -315,6 +323,7 @@ export interface FileRoutesByTo {
   '/api/public/buildserver/status': typeof ApiPublicBuildserverStatusRoute
   '/api/public/buildserver/stub': typeof ApiPublicBuildserverStubRoute
   '/api/public/buildserver/upload': typeof ApiPublicBuildserverUploadRoute
+  '/api/public/nowpayments/webhook': typeof ApiPublicNowpaymentsWebhookRoute
   '/api/public/auth/discord/callback': typeof ApiPublicAuthDiscordCallbackRoute
   '/api/public/auth/discord/start': typeof ApiPublicAuthDiscordStartRoute
   '/api/public/builds/$id/download': typeof ApiPublicBuildsIdDownloadRoute
@@ -355,6 +364,7 @@ export interface FileRoutesById {
   '/api/public/buildserver/status': typeof ApiPublicBuildserverStatusRoute
   '/api/public/buildserver/stub': typeof ApiPublicBuildserverStubRoute
   '/api/public/buildserver/upload': typeof ApiPublicBuildserverUploadRoute
+  '/api/public/nowpayments/webhook': typeof ApiPublicNowpaymentsWebhookRoute
   '/api/public/auth/discord/callback': typeof ApiPublicAuthDiscordCallbackRoute
   '/api/public/auth/discord/start': typeof ApiPublicAuthDiscordStartRoute
   '/api/public/builds/$id/download': typeof ApiPublicBuildsIdDownloadRoute
@@ -396,6 +406,7 @@ export interface FileRouteTypes {
     | '/api/public/buildserver/status'
     | '/api/public/buildserver/stub'
     | '/api/public/buildserver/upload'
+    | '/api/public/nowpayments/webhook'
     | '/api/public/auth/discord/callback'
     | '/api/public/auth/discord/start'
     | '/api/public/builds/$id/download'
@@ -434,6 +445,7 @@ export interface FileRouteTypes {
     | '/api/public/buildserver/status'
     | '/api/public/buildserver/stub'
     | '/api/public/buildserver/upload'
+    | '/api/public/nowpayments/webhook'
     | '/api/public/auth/discord/callback'
     | '/api/public/auth/discord/start'
     | '/api/public/builds/$id/download'
@@ -473,6 +485,7 @@ export interface FileRouteTypes {
     | '/api/public/buildserver/status'
     | '/api/public/buildserver/stub'
     | '/api/public/buildserver/upload'
+    | '/api/public/nowpayments/webhook'
     | '/api/public/auth/discord/callback'
     | '/api/public/auth/discord/start'
     | '/api/public/builds/$id/download'
@@ -500,6 +513,7 @@ export interface RootRouteChildren {
   ApiPublicBuildserverStatusRoute: typeof ApiPublicBuildserverStatusRoute
   ApiPublicBuildserverStubRoute: typeof ApiPublicBuildserverStubRoute
   ApiPublicBuildserverUploadRoute: typeof ApiPublicBuildserverUploadRoute
+  ApiPublicNowpaymentsWebhookRoute: typeof ApiPublicNowpaymentsWebhookRoute
   ApiPublicAuthDiscordCallbackRoute: typeof ApiPublicAuthDiscordCallbackRoute
   ApiPublicAuthDiscordStartRoute: typeof ApiPublicAuthDiscordStartRoute
   ApiPublicBuildsIdDownloadRoute: typeof ApiPublicBuildsIdDownloadRoute
@@ -660,6 +674,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/clients/$id'
       preLoaderRoute: typeof DashboardClientsIdRouteImport
       parentRoute: typeof DashboardClientsRoute
+    }
+    '/api/public/nowpayments/webhook': {
+      id: '/api/public/nowpayments/webhook'
+      path: '/api/public/nowpayments/webhook'
+      fullPath: '/api/public/nowpayments/webhook'
+      preLoaderRoute: typeof ApiPublicNowpaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/buildserver/upload': {
       id: '/api/public/buildserver/upload'
@@ -836,6 +857,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBuildserverStatusRoute: ApiPublicBuildserverStatusRoute,
   ApiPublicBuildserverStubRoute: ApiPublicBuildserverStubRoute,
   ApiPublicBuildserverUploadRoute: ApiPublicBuildserverUploadRoute,
+  ApiPublicNowpaymentsWebhookRoute: ApiPublicNowpaymentsWebhookRoute,
   ApiPublicAuthDiscordCallbackRoute: ApiPublicAuthDiscordCallbackRoute,
   ApiPublicAuthDiscordStartRoute: ApiPublicAuthDiscordStartRoute,
   ApiPublicBuildsIdDownloadRoute: ApiPublicBuildsIdDownloadRoute,
@@ -843,13 +865,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
