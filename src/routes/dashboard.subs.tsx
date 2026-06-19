@@ -27,10 +27,30 @@ function SubsPage() {
   const { user } = useAuth();
   const sub = useSubscription(user?.id);
   const [buying, setBuying] = useState<string | null>(null);
+  const [payEnabled, setPayEnabled] = useState(true);
+  const [payMode, setPayMode] = useState<"live" | "sandbox">("live");
   const pay = useServerFn(createNowPayment);
+
+  useState(() => {
+    supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "payments")
+      .maybeSingle()
+      .then(({ data }) => {
+        const v = (data?.value ?? {}) as { enabled?: boolean; mode?: "live" | "sandbox" };
+        setPayEnabled(v.enabled !== false);
+        setPayMode(v.mode === "sandbox" ? "sandbox" : "live");
+      });
+    return undefined as any;
+  });
 
   const purchase = async (planId: string) => {
     if (!user) return;
+    if (!payEnabled) {
+      toast.error("Payments are temporarily disabled. Please check back soon.");
+      return;
+    }
     setBuying(planId);
     try {
       const result = await pay({ data: { planId, userId: user.id } });
