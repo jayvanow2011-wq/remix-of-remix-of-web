@@ -24,6 +24,16 @@ export const createNowPayment = createServerFn({ method: "POST" })
     const apiKey = process.env.NOWPAYMENTS_API_KEY;
     if (!apiKey) throw new Error("Payment provider not configured");
 
+    const { getRequestHost } = await import("@tanstack/react-start/server");
+    let origin = "";
+    try {
+      const host = getRequestHost();
+      origin = host ? `https://${host}` : "";
+    } catch {
+      origin = "";
+    }
+
+    const orderId = `${data.userId}__${data.planId}__${Date.now()}`;
     const res = await fetch("https://api.nowpayments.io/v1/invoice", {
       method: "POST",
       headers: {
@@ -33,11 +43,11 @@ export const createNowPayment = createServerFn({ method: "POST" })
       body: JSON.stringify({
         price_amount: plan.usd,
         price_currency: "usd",
-        order_id: `${data.userId}__${data.planId}__${Date.now()}`,
+        order_id: orderId,
         order_description: `Veltrix ${plan.label} subscription`,
-        ipn_callback_url: "", // will be set when we add the webhook
-        success_url: "",
-        cancel_url: "",
+        ipn_callback_url: origin ? `${origin}/api/public/nowpayments/webhook` : undefined,
+        success_url: origin ? `${origin}/dashboard/subs?paid=1` : undefined,
+        cancel_url: origin ? `${origin}/dashboard/subs?cancel=1` : undefined,
       }),
     });
 
