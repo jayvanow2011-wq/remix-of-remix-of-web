@@ -14,7 +14,7 @@ export const Route = createFileRoute("/dashboard/admin")({
   component: AdminPanel,
 });
 
-type Tab = "users" | "devices" | "audit" | "subs" | "news" | "turn";
+type Tab = "users" | "devices" | "audit" | "subs" | "news" | "turn" | "payments";
 
 type UserRow = {
   id: string;
@@ -69,6 +69,7 @@ function AdminPanel() {
     { id: "devices", label: "Devices", icon: Monitor },
     { id: "audit", label: "Audit Logs", icon: FileText },
     { id: "subs", label: "Subscriptions", icon: CreditCard },
+    { id: "payments", label: "Payments", icon: CreditCard },
     { id: "news", label: "Post News", icon: Megaphone },
     { id: "turn", label: "TURN Servers", icon: Radio },
   ];
@@ -108,8 +109,109 @@ function AdminPanel() {
       {tab === "devices" && <DevicesTab />}
       {tab === "audit" && <AuditTab />}
       {tab === "subs" && <SubsTab />}
+      {tab === "payments" && <PaymentsTab />}
       {tab === "news" && <NewsTab />}
       {tab === "turn" && <TurnTab />}
+    </div>
+  );
+}
+
+/* ─── Payments ─── */
+function PaymentsTab() {
+  const [enabled, setEnabled] = useState(true);
+  const [mode, setMode] = useState<"live" | "sandbox">("live");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "payments")
+      .maybeSingle()
+      .then(({ data }) => {
+        const v = (data?.value ?? {}) as { enabled?: boolean; mode?: "live" | "sandbox" };
+        setEnabled(v.enabled !== false);
+        setMode(v.mode === "sandbox" ? "sandbox" : "live");
+        setLoading(false);
+      });
+  }, []);
+
+  const save = async (next: { enabled: boolean; mode: "live" | "sandbox" }) => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert({ key: "payments", value: next, updated_at: new Date().toISOString() } as any);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Payment settings saved");
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5 rounded-2xl border border-border bg-card p-6">
+      <div>
+        <h2 className="text-lg font-semibold">Payments (NowPayments)</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Enable or disable checkout, and switch between live crypto payments and the NowPayments sandbox for testing.
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between rounded-lg border border-border bg-background/40 p-4">
+        <div>
+          <div className="text-sm font-medium">Payments enabled</div>
+          <div className="text-xs text-muted-foreground">When off, users see a disabled state on the subscriptions page.</div>
+        </div>
+        <button
+          disabled={saving}
+          onClick={() => {
+            const next = !enabled;
+            setEnabled(next);
+            save({ enabled: next, mode });
+          }}
+          className={`relative h-6 w-11 rounded-full transition ${enabled ? "bg-primary" : "bg-muted"}`}
+        >
+          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition ${enabled ? "left-5" : "left-0.5"}`} />
+        </button>
+      </div>
+
+      <div className="rounded-lg border border-border bg-background/40 p-4">
+        <div className="text-sm font-medium">Mode</div>
+        <div className="mt-1 text-xs text-muted-foreground">
+          Live charges real crypto. Test uses NowPayments sandbox — no real money moves.
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {(["live", "sandbox"] as const).map((m) => (
+            <button
+              key={m}
+              disabled={saving}
+              onClick={() => {
+                setMode(m);
+                save({ enabled, mode: m });
+              }}
+              className={`rounded-md border px-3 py-2 text-sm font-medium transition ${
+                mode === m
+                  ? "border-foreground/60 bg-foreground/10"
+                  : "border-border hover:border-foreground/30"
+              }`}
+            >
+              {m === "live" ? "🟢 Live" : "🧪 Test (sandbox)"}
+            </button>
+          ))}
+        </div>
+        {mode === "sandbox" && (
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            Sandbox uses <code className="font-mono">NOWPAYMENTS_API_KEY_SANDBOX</code> if set, otherwise falls back to the live key.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
