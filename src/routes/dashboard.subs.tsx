@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,10 +27,29 @@ function SubsPage() {
   const { user } = useAuth();
   const sub = useSubscription(user?.id);
   const [buying, setBuying] = useState<string | null>(null);
+  const [payEnabled, setPayEnabled] = useState(true);
+  const [payMode, setPayMode] = useState<"live" | "sandbox">("live");
   const pay = useServerFn(createNowPayment);
+
+  useEffect(() => {
+    supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "payments")
+      .maybeSingle()
+      .then(({ data }) => {
+        const v = (data?.value ?? {}) as { enabled?: boolean; mode?: "live" | "sandbox" };
+        setPayEnabled(v.enabled !== false);
+        setPayMode(v.mode === "sandbox" ? "sandbox" : "live");
+      });
+  }, []);
 
   const purchase = async (planId: string) => {
     if (!user) return;
+    if (!payEnabled) {
+      toast.error("Payments are temporarily disabled. Please check back soon.");
+      return;
+    }
     setBuying(planId);
     try {
       const result = await pay({ data: { planId, userId: user.id } });
@@ -56,8 +75,22 @@ function SubsPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Subscriptions</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Pick a plan or extend your access.</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">Subscriptions</h1>
+          {payMode === "sandbox" && (
+            <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-yellow-500">
+              Test mode
+            </span>
+          )}
+          {!payEnabled && (
+            <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-destructive">
+              Disabled
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {payEnabled ? "Pick a plan or extend your access." : "Payments are temporarily disabled. Check back soon."}
+        </p>
       </div>
 
       {/* Summer sale banner */}
