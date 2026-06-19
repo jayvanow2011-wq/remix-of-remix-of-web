@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,7 +31,7 @@ function SubsPage() {
   const [payMode, setPayMode] = useState<"live" | "sandbox">("live");
   const pay = useServerFn(createNowPayment);
 
-  useState(() => {
+  useEffect(() => {
     supabase
       .from("app_settings")
       .select("value")
@@ -42,8 +42,7 @@ function SubsPage() {
         setPayEnabled(v.enabled !== false);
         setPayMode(v.mode === "sandbox" ? "sandbox" : "live");
       });
-    return undefined as any;
-  });
+  }, []);
 
   const purchase = async (planId: string) => {
     if (!user) return;
