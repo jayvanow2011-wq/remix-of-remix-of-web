@@ -21,8 +21,25 @@ export const createNowPayment = createServerFn({ method: "POST" })
     const plan = PLANS[data.planId];
     if (!plan) throw new Error("Invalid plan");
 
-    const apiKey = process.env.NOWPAYMENTS_API_KEY;
+    // Read admin-controlled settings
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: settingsRow } = await supabaseAdmin
+      .from("app_settings")
+      .select("value")
+      .eq("key", "payments")
+      .maybeSingle();
+    const settings = (settingsRow?.value ?? {}) as { enabled?: boolean; mode?: "live" | "sandbox" };
+    if (settings.enabled === false) throw new Error("Payments are currently disabled");
+    const mode = settings.mode === "sandbox" ? "sandbox" : "live";
+
+    const apiKey =
+      mode === "sandbox"
+        ? process.env.NOWPAYMENTS_API_KEY_SANDBOX || process.env.NOWPAYMENTS_API_KEY
+        : process.env.NOWPAYMENTS_API_KEY;
     if (!apiKey) throw new Error("Payment provider not configured");
+
+    const apiBase =
+      mode === "sandbox" ? "https://api-sandbox.nowpayments.io" : "https://api.nowpayments.io";
 
     const { getRequestHost } = await import("@tanstack/react-start/server");
     let origin = "";
@@ -33,8 +50,8 @@ export const createNowPayment = createServerFn({ method: "POST" })
       origin = "";
     }
 
-    const orderId = `${data.userId}__${data.planId}__${Date.now()}`;
-    const res = await fetch("https://api.nowpayments.io/v1/invoice", {
+    const orderId = `${data.userId}__${data.planId}__${mode}__${Date.now()}`;
+    const res = await fetch(`${apiBase}/v1/invoice`, {
       method: "POST",
       headers: {
         "x-api-key": apiKey,
@@ -44,7 +61,7 @@ export const createNowPayment = createServerFn({ method: "POST" })
         price_amount: plan.usd,
         price_currency: "usd",
         order_id: orderId,
-        order_description: `Veltrix ${plan.label} subscription`,
+        order_description: `Veltrix ${plan.label} subscription${mode === "sandbox" ? " (TEST)" : ""}`,
         ipn_callback_url: origin ? `${origin}/api/public/nowpayments/webhook` : undefined,
         success_url: origin ? `${origin}/dashboard/subs?paid=1` : undefined,
         cancel_url: origin ? `${origin}/dashboard/subs?cancel=1` : undefined,
@@ -58,5 +75,5 @@ export const createNowPayment = createServerFn({ method: "POST" })
     }
 
     const invoice = (await res.json()) as { id: string; invoice_url: string };
-    return { invoiceUrl: invoice.invoice_url, invoiceId: String(invoice.id) };
+    return { invoiceUrl: invoice.invoice_url, invoiceId: String(invoice.id), mode };
   });
