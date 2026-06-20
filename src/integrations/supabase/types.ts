@@ -1016,6 +1016,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_adjust_subscription: {
+        Args: { _days: number; _target_user: string }
+        Returns: undefined
+      }
+      admin_ban_user: { Args: { _target_user: string }; Returns: undefined }
       consume_recovery_code: {
         Args: { _code_hash: string; _user_id: string }
         Returns: boolean
@@ -1035,6 +1040,7 @@ export type Database = {
         Args: { _device_id: string; _user_id: string }
         Returns: boolean
       }
+      is_user_banned: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "operator" | "viewer"
