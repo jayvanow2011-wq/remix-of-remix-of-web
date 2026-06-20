@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import { Users, Wifi, Activity, Cpu, ArrowUpRight } from "lucide-react";
 import {
   Area,
@@ -15,6 +16,7 @@ import {
 export const Route = createFileRoute("/dashboard/")({
   component: OverviewPage,
 });
+
 
 type Device = {
   id: string;
@@ -89,24 +91,52 @@ function StatCard({
 }
 
 function OverviewPage() {
+  const { user } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
   const [metrics, setMetrics] = useState<MetricRow[]>([]);
 
   useEffect(() => {
+    if (!user) return;
     let mounted = true;
     const load = async () => {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const [d, m] = await Promise.all([
-        supabase.from("devices").select("id,pc_name,device_name,ip_address,is_online,last_seen"),
+
+      // owned + shared device ids for this user
+      const [{ data: owned }, { data: sharedRows }] = await Promise.all([
         supabase
-          .from("device_metrics")
-          .select("recorded_at,cpu_percent,ram_percent")
-          .gte("recorded_at", since)
-          .order("recorded_at", { ascending: true }),
+          .from("devices")
+          .select("id,pc_name,device_name,ip_address,is_online,last_seen")
+          .eq("owner_user_id", user.id),
+        supabase.from("device_access").select("device_id").eq("user_id", user.id),
       ]);
+      const sharedIds = (sharedRows ?? []).map((r: any) => r.device_id);
+      let shared: Device[] = [];
+      if (sharedIds.length) {
+        const { data } = await supabase
+          .from("devices")
+          .select("id,pc_name,device_name,ip_address,is_online,last_seen")
+          .in("id", sharedIds);
+        shared = (data as Device[]) ?? [];
+      }
+      const map = new Map<string, Device>();
+      for (const d of [...(owned ?? []), ...shared] as Device[]) map.set(d.id, d);
+      const deviceList = Array.from(map.values());
+
+      const deviceIds = deviceList.map((d) => d.id);
+      let metricRows: MetricRow[] = [];
+      if (deviceIds.length) {
+        const { data: m } = await supabase
+          .from("device_metrics")
+          .select("recorded_at,cpu_percent,ram_percent,device_id")
+          .in("device_id", deviceIds)
+          .gte("recorded_at", since)
+          .order("recorded_at", { ascending: true });
+        metricRows = (m ?? []) as MetricRow[];
+      }
+
       if (!mounted) return;
-      setDevices((d.data ?? []) as Device[]);
-      setMetrics((m.data ?? []) as MetricRow[]);
+      setDevices(deviceList);
+      setMetrics(metricRows);
     };
     load();
 
@@ -120,7 +150,8 @@ function OverviewPage() {
       mounted = false;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]);
+
 
   const total = devices.length;
   const online = devices.filter((d) => d.is_online).length;
