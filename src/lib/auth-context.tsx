@@ -69,9 +69,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithUsername = async (username: string, password: string) => {
     const email = await resolveEmail(username);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return error ? { error: error.message } : {};
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+    const uid = data.user?.id;
+    if (uid) {
+      const { data: banned } = await supabase.rpc("is_user_banned" as never, { _user_id: uid } as never);
+      if (banned) {
+        await supabase.auth.signOut();
+        return { error: "This account is banned. Contact support." };
+      }
+    }
+    return {};
   };
+
 
   const signUpWithUsername = async (username: string, password: string, refCode?: string) => {
     const u = username.trim();
