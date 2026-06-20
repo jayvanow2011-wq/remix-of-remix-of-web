@@ -32,14 +32,47 @@ export const createNowPayment = createServerFn({ method: "POST" })
     if (settings.enabled === false) throw new Error("Payments are currently disabled");
     const mode = settings.mode === "sandbox" ? "sandbox" : "live";
 
-    const apiKey =
-      mode === "sandbox"
-        ? process.env.NOWPAYMENTS_API_KEY_SANDBOX || process.env.NOWPAYMENTS_API_KEY
-        : process.env.NOWPAYMENTS_API_KEY;
+    // TEST MODE: simulate a successful payment, no provider call.
+    // Activates the subscription immediately with the +20% summer bonus.
+    if (mode === "sandbox") {
+      const BONUS = 1.2;
+      const days = Math.round(plan.days * BONUS);
+      const now = new Date();
+
+      // Extend from existing active expiry if later than now
+      const { data: existing } = await supabaseAdmin
+        .from("subscriptions")
+        .select("expires_at")
+        .eq("user_id", data.userId)
+        .eq("status", "active")
+        .order("expires_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const base =
+        existing?.expires_at && new Date(existing.expires_at) > now
+          ? new Date(existing.expires_at)
+          : now;
+      const expires = new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
+
+      await supabaseAdmin.from("subscriptions").insert({
+        user_id: data.userId,
+        plan: data.planId,
+        status: "active",
+        started_at: now.toISOString(),
+        expires_at: expires.toISOString(),
+        provider: "test",
+        provider_payment_id: `test_${Date.now()}`,
+        amount_usd: 0,
+        currency: "TEST",
+      });
+
+      return { invoiceUrl: "", invoiceId: "test", mode, test: true as const };
+    }
+
+    const apiKey = process.env.NOWPAYMENTS_API_KEY;
     if (!apiKey) throw new Error("Payment provider not configured");
 
-    const apiBase =
-      mode === "sandbox" ? "https://api-sandbox.nowpayments.io" : "https://api.nowpayments.io";
+    const apiBase = "https://api.nowpayments.io";
 
     const { getRequestHost } = await import("@tanstack/react-start/server");
     let origin = "";
@@ -61,7 +94,7 @@ export const createNowPayment = createServerFn({ method: "POST" })
         price_amount: plan.usd,
         price_currency: "usd",
         order_id: orderId,
-        order_description: `Veltrix ${plan.label} subscription${mode === "sandbox" ? " (TEST)" : ""}`,
+        order_description: `Veltrix ${plan.label} subscription`,
         ipn_callback_url: origin ? `${origin}/api/public/nowpayments/webhook` : undefined,
         success_url: origin ? `${origin}/dashboard/subs?paid=1` : undefined,
         cancel_url: origin ? `${origin}/dashboard/subs?cancel=1` : undefined,

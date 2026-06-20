@@ -53,7 +53,9 @@ function SubsPage() {
     setBuying(planId);
     try {
       const result = await pay({ data: { planId, userId: user.id } });
-      if (result.invoiceUrl) {
+      if ((result as any).test) {
+        toast.success("Test purchase activated — subscription extended.");
+      } else if (result.invoiceUrl) {
         await supabase.from("subscriptions").insert({
           user_id: user.id,
           plan: planId,
