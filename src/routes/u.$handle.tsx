@@ -96,7 +96,7 @@ function PublicBio() {
         </div>
 
         <div className="text-center font-mono text-[10px] text-muted-foreground">
-          made on <a href="/" className="text-primary hover:underline">veltrix</a>
+          <a href="/" className="text-primary hover:underline">veltrixrat.xyz</a>
         </div>
       </div>
     </main>
