@@ -174,7 +174,7 @@ function SettingsPage() {
 
       {tab === "misc" && (
         <>
-          <Section title="Language" desc="Choose your interface language.">
+          <Section title="Language">
             <div className="grid grid-cols-3 gap-2">
               {LANGUAGES.map((l) => (
                 <button key={l.id} onClick={() => update("language", l.id)}
@@ -185,9 +185,9 @@ function SettingsPage() {
             </div>
           </Section>
 
-          <Section title="AI Assistant" desc="In-app helper personality." icon={Bot}>
-            <Toggle label="Enabled" desc="Show the assistant widget." value={customization.aiEnabled} set={(v) => update("aiEnabled", v)} />
-            <Toggle label="Brief replies" desc="Short, no fluff." value={customization.aiBrief} set={(v) => update("aiBrief", v)} />
+          <Section title="AI Assistant" icon={Bot}>
+            <Toggle label="Enabled" desc="" value={customization.aiEnabled} set={(v) => update("aiEnabled", v)} />
+            <Toggle label="Brief replies" desc="" value={customization.aiBrief} set={(v) => update("aiBrief", v)} />
             <div className="space-y-2">
               <div className="text-sm font-medium">{t("aiPersonality")}</div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
