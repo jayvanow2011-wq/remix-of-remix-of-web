@@ -263,10 +263,10 @@ function SignupPage() {
                   className="btn-secondary"><Copy className="h-3.5 w-3.5" /> Copy all</button>
                 <button type="button"
                   onClick={() => {
-                    const blob = new Blob([`Veltrix recovery codes\n\n${codes.join("\n")}\n\nLegacy: ${recoveryTok ?? ""}\n`], { type: "text/plain" });
+                    const blob = new Blob([`veltrixrat.xyz recovery codes\n\n${codes.join("\n")}\n\nLegacy: ${recoveryTok ?? ""}\n`], { type: "text/plain" });
                     const a = document.createElement("a");
                     a.href = URL.createObjectURL(blob);
-                    a.download = "veltrix-recovery.txt";
+                    a.download = "veltrixrat-recovery.txt";
                     a.click();
                   }}
                   className="btn-secondary"><Download className="h-3.5 w-3.5" /> Download .txt</button>
