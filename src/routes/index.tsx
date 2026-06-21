@@ -117,17 +117,17 @@ function LoginPage() {
         <div className="rounded-xl border border-white/[0.08] bg-black/60 p-7 backdrop-blur-xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]">
           <div className="mb-6 text-center">
             <h1 className="text-[19px] font-semibold tracking-tight text-white">
-              {mode === "recover" ? "Reset your password" : stage === "2fa" ? "Two-factor code" : "Sign in to fudrat.lol"}
+              {mode === "recover" ? "Reset password" : stage === "2fa" ? "Two-factor code" : "veltrixrat.xyz"}
             </h1>
-            <p className="mt-1.5 text-[13px] text-white/55">
-              {mode === "recover" ? (
-                <>Remembered it? <button type="button" onClick={() => setMode("login")} className="font-medium text-white hover:underline">Sign in</button></>
-              ) : stage === "2fa" ? (
-                <>Code from your authenticator or recovery code.</>
-              ) : (
-                <>Don't have an account? <Link to="/signup" className="font-medium text-white hover:underline">Sign up</Link></>
-              )}
-            </p>
+            {mode === "recover" ? (
+              <p className="mt-1.5 text-[13px] text-white/55">
+                <button type="button" onClick={() => setMode("login")} className="font-medium text-white hover:underline">Sign in</button>
+              </p>
+            ) : stage === "creds" ? (
+              <p className="mt-1.5 text-[13px] text-white/55">
+                <Link to="/signup" className="font-medium text-white hover:underline">Sign up</Link>
+              </p>
+            ) : null}
           </div>
 
           {mode === "login" && stage === "creds" && (
