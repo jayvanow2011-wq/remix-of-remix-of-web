@@ -90,9 +90,9 @@ function SubsPage() {
             </span>
           )}
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {payEnabled ? "Pick a plan or extend your access." : "Payments are temporarily disabled. Check back soon."}
-        </p>
+        {!payEnabled && (
+          <p className="mt-1 text-sm text-muted-foreground">Payments are temporarily disabled.</p>
+        )}
       </div>
 
       {/* Summer sale banner */}
