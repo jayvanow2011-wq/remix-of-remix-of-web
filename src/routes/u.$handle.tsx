@@ -16,10 +16,10 @@ export const Route = createFileRoute("/u/$handle")({
     const name = p.display_name || p.full_name || p.username || "user";
     return {
       meta: [
-        { title: `@${p.username} — veltrix` },
-        { name: "description", content: p.bio || `${name} on veltrix.xyz` },
+        { title: `@${p.username} — veltrixrat.xyz` },
+        { name: "description", content: p.bio || `${name} on veltrixrat.xyz` },
         { property: "og:title", content: `@${p.username}` },
-        { property: "og:description", content: p.bio || `${name} on veltrix.xyz` },
+        { property: "og:description", content: p.bio || `${name} on veltrixrat.xyz` },
         ...(p.avatar_url ? [{ property: "og:image" as const, content: p.avatar_url }] : []),
       ],
     };
