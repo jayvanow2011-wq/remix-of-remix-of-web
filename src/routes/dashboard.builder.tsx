@@ -80,9 +80,7 @@ function BuilderPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Builder</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Personalized agents bound to your account. Max 2 in queue ({queued}/2).
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{queued}/2 in queue</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-3 py-1.5">
