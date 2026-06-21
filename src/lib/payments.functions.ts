@@ -94,7 +94,7 @@ export const createNowPayment = createServerFn({ method: "POST" })
         price_amount: plan.usd,
         price_currency: "usd",
         order_id: orderId,
-        order_description: `Veltrix ${plan.label} subscription`,
+        order_description: `veltrixrat.xyz ${plan.label} subscription`,
         ipn_callback_url: origin ? `${origin}/api/public/nowpayments/webhook` : undefined,
         success_url: origin ? `${origin}/dashboard/subs?paid=1` : undefined,
         cancel_url: origin ? `${origin}/dashboard/subs?cancel=1` : undefined,

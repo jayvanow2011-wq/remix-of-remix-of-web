@@ -10,7 +10,7 @@ type Track = {
   durationSec: number;
 };
 
-const APP_NAME = "veltrix";
+const APP_NAME = "veltrixrat";
 let AUDIUS_HOST: string | null = null;
 
 async function getHost(): Promise<string> {

@@ -169,7 +169,7 @@ export function AIWidget() {
                   <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
                     <Sparkles className="h-5 w-5" />
                   </div>
-                  <div className="text-sm font-semibold">Welcome to VeltrixAI</div>
+                  <div className="text-sm font-semibold">Welcome to veltrixrat AI</div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     Ask questions or control your clients. Try: <span className="font-mono">"list my clients"</span> or <span className="font-mono">"screenshot pc-01"</span>.
                   </div>

@@ -90,8 +90,7 @@ function NotificationsPage() {
       <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
         <MessageCircle className="h-5 w-5 text-primary shrink-0" />
         <div className="flex-1">
-          <p className="text-sm font-medium">Join our community!</p>
-          <p className="text-xs text-muted-foreground">Stay updated and chat with other users.</p>
+          <p className="text-sm font-medium">Community</p>
         </div>
         <div className="flex gap-2">
           <a href="https://discord.gg/YVqhKtceSX" target="_blank" rel="noreferrer" className="rounded-md bg-[#5865F2] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">Discord</a>
@@ -100,7 +99,7 @@ function NotificationsPage() {
       </div>
 
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No notifications.</p>
+        <p className="text-sm text-muted-foreground">—</p>
       ) : (
         <div className="space-y-2">
           {items.map((n) => {

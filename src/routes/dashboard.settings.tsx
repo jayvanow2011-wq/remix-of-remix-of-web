@@ -115,7 +115,6 @@ function SettingsPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Manage your account and preferences.</p>
       </div>
 
       {/* Tabs */}
@@ -129,7 +128,7 @@ function SettingsPage() {
       </div>
 
       {tab === "profile" && (
-        <Section title="Profile" desc="How you appear across the app.">
+        <Section title="Profile">
           <AvatarDrop avatarUrl={avatarUrl} onFile={upload} />
           <Field label={`Username${fromDiscord ? " (Discord-linked)" : ""}`}>
             <input value={username} onChange={(e) => setUsername(e.target.value)} disabled={fromDiscord} className="input disabled:opacity-60" />
@@ -146,13 +145,13 @@ function SettingsPage() {
       {tab === "bio" && <BioPanel />}
 
       {tab === "appearance" && (
-        <Section title="Theme" desc="Three themes. Pick one.">
+        <Section title="Theme">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <ThemeCard name="dark" label="Dark" desc="Vercel-style, pure black." active={theme === "dark"} onClick={() => setTheme("dark")}
+            <ThemeCard name="dark" label="Dark" desc="" active={theme === "dark"} onClick={() => setTheme("dark")}
               swatches={["#000000", "#0a0a0a", "#262626", "#ededed"]} />
-            <ThemeCard name="light" label="Light" desc="Crisp paper white." active={theme === "light"} onClick={() => setTheme("light")}
+            <ThemeCard name="light" label="Light" desc="" active={theme === "light"} onClick={() => setTheme("light")}
               swatches={["#ffffff", "#f5f5f5", "#e5e5e5", "#171717"]} />
-            <ThemeCard name="summer" label="Summer" desc="Warm sand & sunset." active={theme === "summer"} onClick={() => setTheme("summer")}
+            <ThemeCard name="summer" label="Summer" desc="" active={theme === "summer"} onClick={() => setTheme("summer")}
               swatches={["#fef9e7", "#fde2c4", "#f3a26b", "#c14a30"]} />
           </div>
 
@@ -163,7 +162,6 @@ function SettingsPage() {
                 className="h-4 w-4 accent-foreground" />
               <div>
                 <div className="text-sm font-medium">Enable animations</div>
-                <div className="text-xs text-muted-foreground">Subtle page and button motion.</div>
               </div>
             </label>
           </div>
@@ -176,7 +174,7 @@ function SettingsPage() {
 
       {tab === "misc" && (
         <>
-          <Section title="Language" desc="Choose your interface language.">
+          <Section title="Language">
             <div className="grid grid-cols-3 gap-2">
               {LANGUAGES.map((l) => (
                 <button key={l.id} onClick={() => update("language", l.id)}
@@ -187,9 +185,9 @@ function SettingsPage() {
             </div>
           </Section>
 
-          <Section title="AI Assistant" desc="In-app helper personality." icon={Bot}>
-            <Toggle label="Enabled" desc="Show the assistant widget." value={customization.aiEnabled} set={(v) => update("aiEnabled", v)} />
-            <Toggle label="Brief replies" desc="Short, no fluff." value={customization.aiBrief} set={(v) => update("aiBrief", v)} />
+          <Section title="AI Assistant" icon={Bot}>
+            <Toggle label="Enabled" desc="" value={customization.aiEnabled} set={(v) => update("aiEnabled", v)} />
+            <Toggle label="Brief replies" desc="" value={customization.aiBrief} set={(v) => update("aiBrief", v)} />
             <div className="space-y-2">
               <div className="text-sm font-medium">{t("aiPersonality")}</div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -278,7 +276,6 @@ function AvatarDrop({ avatarUrl, onFile }: { avatarUrl: string | null; onFile: (
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium">Profile picture</div>
-        <div className="text-xs text-muted-foreground">Drop an image here, or click upload. PNG / JPG, max 5 MB.</div>
         <div className="mt-2 flex gap-2">
           <label className="btn-secondary cursor-pointer !w-auto">
             <Upload className="h-3.5 w-3.5" /> Choose file
@@ -311,7 +308,6 @@ function ThemeCard({ name, label, desc, swatches, active, onClick }: {
             <Check className="h-2.5 w-2.5" /> active
           </span>}
         </div>
-        <div className="text-[11px] text-muted-foreground">{desc}</div>
         <div className="mt-0.5 font-mono text-[10px] text-muted-foreground/60">theme:{name}</div>
       </div>
     </button>
@@ -323,7 +319,6 @@ function Toggle({ label, desc, value, set }: { label: string; desc: string; valu
     <label className="flex items-center justify-between cursor-pointer">
       <div>
         <div className="text-sm font-medium">{label}</div>
-        <div className="text-xs text-muted-foreground">{desc}</div>
       </div>
       <div className={`relative h-6 w-11 rounded-full transition ${value ? "bg-foreground" : "bg-muted border border-border"}`} onClick={() => set(!value)}>
         <div className={`absolute top-0.5 h-5 w-5 rounded-full shadow transition-transform ${value ? "translate-x-5 bg-background" : "translate-x-0.5 bg-foreground"}`} />
@@ -376,7 +371,7 @@ function SecurityPanel({ totpEnabled, onChange }: { totpEnabled: boolean; onChan
   };
 
   return (
-    <Section title="Two-factor authentication" desc="Add a TOTP code to every sign-in." icon={ShieldCheck}>
+    <Section title="Two-factor authentication" icon={ShieldCheck}>
       {totpEnabled && phase !== "verified" ? (
         <>
           <div className="flex items-center gap-2 rounded-md border border-foreground/30 bg-secondary px-3 py-2 text-sm">
@@ -393,9 +388,6 @@ function SecurityPanel({ totpEnabled, onChange }: { totpEnabled: boolean; onChan
         </button>
       ) : phase === "qr" ? (
         <>
-          <p className="text-xs text-muted-foreground">
-            Scan with Microsoft Authenticator, Google Authenticator, Authy, 1Password — anything TOTP.
-          </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
             {qr && <img src={qr} alt="QR" className="h-40 w-40 rounded-md border border-border bg-white p-1" />}
             <div className="flex-1 space-y-2">
@@ -437,9 +429,9 @@ function CodesList({ codes }: { codes: string[] }) {
         <button onClick={() => { navigator.clipboard.writeText(codes.join("\n")); toast.success("Copied"); }}
           className="btn-secondary"><Copy className="h-3.5 w-3.5" /> Copy all</button>
         <button onClick={() => {
-          const blob = new Blob([`Veltrix recovery codes\n\n${codes.join("\n")}\n`], { type: "text/plain" });
+          const blob = new Blob([`veltrixrat.xyz recovery codes\n\n${codes.join("\n")}\n`], { type: "text/plain" });
           const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-          a.download = "veltrix-recovery.txt"; a.click();
+          a.download = "veltrixrat-recovery.txt"; a.click();
         }} className="btn-secondary"><Download className="h-3.5 w-3.5" /> Download</button>
       </div>
     </div>

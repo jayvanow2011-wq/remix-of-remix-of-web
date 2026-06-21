@@ -16,10 +16,10 @@ export const Route = createFileRoute("/u/$handle")({
     const name = p.display_name || p.full_name || p.username || "user";
     return {
       meta: [
-        { title: `@${p.username} — veltrix` },
-        { name: "description", content: p.bio || `${name} on veltrix.xyz` },
+        { title: `@${p.username} — veltrixrat.xyz` },
+        { name: "description", content: p.bio || `${name} on veltrixrat.xyz` },
         { property: "og:title", content: `@${p.username}` },
-        { property: "og:description", content: p.bio || `${name} on veltrix.xyz` },
+        { property: "og:description", content: p.bio || `${name} on veltrixrat.xyz` },
         ...(p.avatar_url ? [{ property: "og:image" as const, content: p.avatar_url }] : []),
       ],
     };
@@ -57,7 +57,7 @@ function PublicBio() {
   return (
     <main className={`min-h-screen px-4 py-10 bio-theme-${theme}`}>
       <div className="mx-auto max-w-md space-y-4">
-        <div className="text-center font-mono text-[10px] text-muted-foreground">veltrix.xyz/u/{p.username}</div>
+        <div className="text-center font-mono text-[10px] text-muted-foreground">veltrixrat.xyz/u/{p.username}</div>
         <div className="term-frame">
           <div className="term-bar">~/u/{p.username}</div>
           <div className="term-body space-y-4 text-center">
@@ -96,7 +96,7 @@ function PublicBio() {
         </div>
 
         <div className="text-center font-mono text-[10px] text-muted-foreground">
-          made on <a href="/" className="text-primary hover:underline">veltrix</a>
+          <a href="/" className="text-primary hover:underline">veltrixrat.xyz</a>
         </div>
       </div>
     </main>

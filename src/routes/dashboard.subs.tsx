@@ -90,9 +90,9 @@ function SubsPage() {
             </span>
           )}
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {payEnabled ? "Pick a plan or extend your access." : "Payments are temporarily disabled. Check back soon."}
-        </p>
+        {!payEnabled && (
+          <p className="mt-1 text-sm text-muted-foreground">Payments are temporarily disabled.</p>
+        )}
       </div>
 
       {/* Summer sale banner */}
@@ -112,7 +112,7 @@ function SubsPage() {
                 </span>
               </div>
               <div className="text-xs text-muted-foreground">
-                Every subscription you buy is <span className="font-mono text-foreground">×{BONUS}</span> longer. Auto-applied at checkout.
+                <span className="font-mono text-foreground">×{BONUS}</span> longer subscriptions, auto-applied.
               </div>
             </div>
           </div>
@@ -159,7 +159,6 @@ function SubsPage() {
       ) : (
         <div className="rounded-xl border border-destructive/40 bg-card p-5">
           <p className="text-sm font-medium text-destructive">No active subscription.</p>
-          <p className="mt-1 text-xs text-muted-foreground">Pick a plan below to unlock all features.</p>
         </div>
       )}
 
@@ -195,9 +194,6 @@ function SubsPage() {
             );
           })}
         </div>
-        <p className="mt-3 text-[11px] text-muted-foreground">
-          Tip: visit the <a href="/dashboard/refer" className="text-foreground hover:underline">refer page</a> to earn free days.
-        </p>
       </div>
     </div>
   );

@@ -194,7 +194,6 @@ function OverviewPage() {
       <header className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
-          <p className="text-sm text-muted-foreground">Live fleet status — past 24 hours.</p>
         </div>
         <div className="flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-xl">
           <span className="relative flex h-2 w-2">
@@ -219,7 +218,6 @@ function OverviewPage() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold tracking-tight">Last 24 hours</h2>
-            <p className="text-xs text-muted-foreground">Average CPU and RAM across all clients.</p>
           </div>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
@@ -273,7 +271,7 @@ function OverviewPage() {
           </Link>
         </div>
         {devices.length === 0 ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">No clients enrolled yet.</div>
+          <div className="py-8 text-center text-sm text-muted-foreground">—</div>
         ) : (
           <ul className="divide-y divide-border/60">
             {devices.slice(0, 6).map((d) => (
