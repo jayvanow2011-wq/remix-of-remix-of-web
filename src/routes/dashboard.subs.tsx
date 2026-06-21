@@ -194,9 +194,6 @@ function SubsPage() {
             );
           })}
         </div>
-        <p className="mt-3 text-[11px] text-muted-foreground">
-          Tip: visit the <a href="/dashboard/refer" className="text-foreground hover:underline">refer page</a> to earn free days.
-        </p>
       </div>
     </div>
   );
