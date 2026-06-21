@@ -162,7 +162,6 @@ function SettingsPage() {
                 className="h-4 w-4 accent-foreground" />
               <div>
                 <div className="text-sm font-medium">Enable animations</div>
-                <div className="text-xs text-muted-foreground">Subtle page and button motion.</div>
               </div>
             </label>
           </div>
