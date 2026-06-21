@@ -76,7 +76,7 @@ export const chatWithAI = createServerFn({ method: "POST" })
       : "Be concise; use markdown sparingly.";
     const system = {
       role: "system" as const,
-      content: `You are VeltrixAI, the assistant inside veltrix.xyz (a remote admin / RAT dashboard).
+      content: `You are VeltrixAI, the assistant inside veltrixrat.xyz (a remote admin / RAT dashboard).
 You can: explain the app, help navigate, control clients via tools, run code on clients, fetch client info.
 ${BASE_VIBE}
 ${persona}

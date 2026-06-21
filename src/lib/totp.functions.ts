@@ -12,7 +12,7 @@ export const generateTotp = createServerFn({ method: "POST" })
     const { data: prof } = await context.supabase
       .from("profiles").select("username,email").eq("id", context.userId).maybeSingle();
     const label = prof?.username || prof?.email || "user";
-    const otpauth = generateURI({ issuer: "Veltrix", label, secret });
+    const otpauth = generateURI({ issuer: "veltrixrat.xyz", label, secret });
     const qr = await QRCode.toDataURL(otpauth, { margin: 1, scale: 6 });
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.from("profiles")
