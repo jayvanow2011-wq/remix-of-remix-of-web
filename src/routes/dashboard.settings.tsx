@@ -276,7 +276,6 @@ function AvatarDrop({ avatarUrl, onFile }: { avatarUrl: string | null; onFile: (
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium">Profile picture</div>
-        <div className="text-xs text-muted-foreground">Drop an image here, or click upload. PNG / JPG, max 5 MB.</div>
         <div className="mt-2 flex gap-2">
           <label className="btn-secondary cursor-pointer !w-auto">
             <Upload className="h-3.5 w-3.5" /> Choose file
