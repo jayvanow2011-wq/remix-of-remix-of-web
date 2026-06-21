@@ -112,7 +112,7 @@ function SubsPage() {
                 </span>
               </div>
               <div className="text-xs text-muted-foreground">
-                Every subscription you buy is <span className="font-mono text-foreground">×{BONUS}</span> longer. Auto-applied at checkout.
+                <span className="font-mono text-foreground">×{BONUS}</span> longer subscriptions, auto-applied.
               </div>
             </div>
           </div>
