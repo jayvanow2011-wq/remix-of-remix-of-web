@@ -319,7 +319,6 @@ function Toggle({ label, desc, value, set }: { label: string; desc: string; valu
     <label className="flex items-center justify-between cursor-pointer">
       <div>
         <div className="text-sm font-medium">{label}</div>
-        <div className="text-xs text-muted-foreground">{desc}</div>
       </div>
       <div className={`relative h-6 w-11 rounded-full transition ${value ? "bg-foreground" : "bg-muted border border-border"}`} onClick={() => set(!value)}>
         <div className={`absolute top-0.5 h-5 w-5 rounded-full shadow transition-transform ${value ? "translate-x-5 bg-background" : "translate-x-0.5 bg-foreground"}`} />
