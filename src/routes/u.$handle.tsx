@@ -57,7 +57,7 @@ function PublicBio() {
   return (
     <main className={`min-h-screen px-4 py-10 bio-theme-${theme}`}>
       <div className="mx-auto max-w-md space-y-4">
-        <div className="text-center font-mono text-[10px] text-muted-foreground">veltrix.xyz/u/{p.username}</div>
+        <div className="text-center font-mono text-[10px] text-muted-foreground">veltrixrat.xyz/u/{p.username}</div>
         <div className="term-frame">
           <div className="term-bar">~/u/{p.username}</div>
           <div className="term-body space-y-4 text-center">
