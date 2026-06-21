@@ -128,7 +128,7 @@ function SettingsPage() {
       </div>
 
       {tab === "profile" && (
-        <Section title="Profile" desc="How you appear across the app.">
+        <Section title="Profile">
           <AvatarDrop avatarUrl={avatarUrl} onFile={upload} />
           <Field label={`Username${fromDiscord ? " (Discord-linked)" : ""}`}>
             <input value={username} onChange={(e) => setUsername(e.target.value)} disabled={fromDiscord} className="input disabled:opacity-60" />
