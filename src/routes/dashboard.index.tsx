@@ -271,7 +271,7 @@ function OverviewPage() {
           </Link>
         </div>
         {devices.length === 0 ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">No clients enrolled yet.</div>
+          <div className="py-8 text-center text-sm text-muted-foreground">—</div>
         ) : (
           <ul className="divide-y divide-border/60">
             {devices.slice(0, 6).map((d) => (
