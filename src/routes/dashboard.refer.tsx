@@ -74,7 +74,7 @@ function ReferPage() {
           </button>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Share this link. When someone signs up via it and buys a subscription, you instantly get <b className="text-foreground">+30 days</b>. Every 5 active referrals = bonus <b className="text-foreground">+30 days</b>.
+          <b className="text-foreground">+30 days</b> per activated referral. Every 5 active = bonus <b className="text-foreground">+30 days</b>.
         </p>
       </section>
 
