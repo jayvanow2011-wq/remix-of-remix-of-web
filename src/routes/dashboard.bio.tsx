@@ -12,7 +12,7 @@ import { ExternalLink, Trash2, GripVertical, Plus, Eye } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard/bio")({
   component: BioEditor,
-  head: () => ({ meta: [{ title: "bio — veltrix" }] }),
+  head: () => ({ meta: [{ title: "bio — veltrixrat.xyz" }] }),
 });
 
 function BioEditor() {
