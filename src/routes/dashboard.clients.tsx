@@ -134,9 +134,6 @@ function ClientsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">clients</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            your bots. live status, tags, the works.
-          </p>
         </div>
         <a
           href="/downloads/agent.exe"
