@@ -159,7 +159,6 @@ function SubsPage() {
       ) : (
         <div className="rounded-xl border border-destructive/40 bg-card p-5">
           <p className="text-sm font-medium text-destructive">No active subscription.</p>
-          <p className="mt-1 text-xs text-muted-foreground">Pick a plan below to unlock all features.</p>
         </div>
       )}
 
