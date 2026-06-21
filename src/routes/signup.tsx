@@ -10,7 +10,7 @@ import { LoginMusic } from "@/components/LoginMusic";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
-  head: () => ({ meta: [{ title: "Create your account — Veltrix" }] }),
+  head: () => ({ meta: [{ title: "Create account — veltrixrat.xyz" }] }),
 });
 
 type Step = "acc" | "creating" | "twofa" | "recovery" | "profile" | "done";
