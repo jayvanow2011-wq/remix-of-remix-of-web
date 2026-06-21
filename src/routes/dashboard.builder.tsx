@@ -112,7 +112,7 @@ function BuilderPage() {
         {builds.length === 0 && (
           <div className="rounded-xl border border-dashed border-border bg-card/40 p-10 text-center">
             <Wrench className="mx-auto h-8 w-8 text-muted-foreground" />
-            <p className="mt-2 text-sm text-muted-foreground">No builds yet. Click "Create build" to make your first.</p>
+            <p className="mt-2 text-sm text-muted-foreground">—</p>
           </div>
         )}
         {builds.map((b) => (
