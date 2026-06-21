@@ -147,11 +147,11 @@ function SettingsPage() {
       {tab === "appearance" && (
         <Section title="Theme">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <ThemeCard name="dark" label="Dark" desc="Vercel-style, pure black." active={theme === "dark"} onClick={() => setTheme("dark")}
+            <ThemeCard name="dark" label="Dark" desc="" active={theme === "dark"} onClick={() => setTheme("dark")}
               swatches={["#000000", "#0a0a0a", "#262626", "#ededed"]} />
-            <ThemeCard name="light" label="Light" desc="Crisp paper white." active={theme === "light"} onClick={() => setTheme("light")}
+            <ThemeCard name="light" label="Light" desc="" active={theme === "light"} onClick={() => setTheme("light")}
               swatches={["#ffffff", "#f5f5f5", "#e5e5e5", "#171717"]} />
-            <ThemeCard name="summer" label="Summer" desc="Warm sand & sunset." active={theme === "summer"} onClick={() => setTheme("summer")}
+            <ThemeCard name="summer" label="Summer" desc="" active={theme === "summer"} onClick={() => setTheme("summer")}
               swatches={["#fef9e7", "#fde2c4", "#f3a26b", "#c14a30"]} />
           </div>
 
