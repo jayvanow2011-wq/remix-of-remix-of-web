@@ -194,7 +194,6 @@ function OverviewPage() {
       <header className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
-          <p className="text-sm text-muted-foreground">Live fleet status — past 24 hours.</p>
         </div>
         <div className="flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-xl">
           <span className="relative flex h-2 w-2">
