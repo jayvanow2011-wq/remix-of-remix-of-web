@@ -308,7 +308,6 @@ function ThemeCard({ name, label, desc, swatches, active, onClick }: {
             <Check className="h-2.5 w-2.5" /> active
           </span>}
         </div>
-        <div className="text-[11px] text-muted-foreground">{desc}</div>
         <div className="mt-0.5 font-mono text-[10px] text-muted-foreground/60">theme:{name}</div>
       </div>
     </button>
