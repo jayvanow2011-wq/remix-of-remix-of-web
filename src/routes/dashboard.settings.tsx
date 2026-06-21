@@ -145,7 +145,7 @@ function SettingsPage() {
       {tab === "bio" && <BioPanel />}
 
       {tab === "appearance" && (
-        <Section title="Theme" desc="Three themes. Pick one.">
+        <Section title="Theme">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <ThemeCard name="dark" label="Dark" desc="Vercel-style, pure black." active={theme === "dark"} onClick={() => setTheme("dark")}
               swatches={["#000000", "#0a0a0a", "#262626", "#ededed"]} />
