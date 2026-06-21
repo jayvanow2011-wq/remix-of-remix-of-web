@@ -88,7 +88,7 @@ function ReferPage() {
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold">Your referrals</h2>
         {loading ? <p className="text-sm text-muted-foreground">Loading…</p> :
-          referrals.length === 0 ? <p className="text-sm text-muted-foreground">No one signed up via your link yet. Share it!</p> :
+          referrals.length === 0 ? <p className="text-sm text-muted-foreground">—</p> :
           <ul className="divide-y divide-border/40">
             {referrals.map((r) => (
               <li key={r.id} className="flex items-center justify-between py-2 text-sm">
