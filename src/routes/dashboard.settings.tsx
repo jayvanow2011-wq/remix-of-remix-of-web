@@ -371,7 +371,7 @@ function SecurityPanel({ totpEnabled, onChange }: { totpEnabled: boolean; onChan
   };
 
   return (
-    <Section title="Two-factor authentication" desc="Add a TOTP code to every sign-in." icon={ShieldCheck}>
+    <Section title="Two-factor authentication" icon={ShieldCheck}>
       {totpEnabled && phase !== "verified" ? (
         <>
           <div className="flex items-center gap-2 rounded-md border border-foreground/30 bg-secondary px-3 py-2 text-sm">
