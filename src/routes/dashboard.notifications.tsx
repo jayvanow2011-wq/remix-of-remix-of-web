@@ -99,7 +99,7 @@ function NotificationsPage() {
       </div>
 
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No notifications.</p>
+        <p className="text-sm text-muted-foreground">—</p>
       ) : (
         <div className="space-y-2">
           {items.map((n) => {
