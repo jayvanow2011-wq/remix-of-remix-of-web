@@ -388,9 +388,6 @@ function SecurityPanel({ totpEnabled, onChange }: { totpEnabled: boolean; onChan
         </button>
       ) : phase === "qr" ? (
         <>
-          <p className="text-xs text-muted-foreground">
-            Scan with Microsoft Authenticator, Google Authenticator, Authy, 1Password — anything TOTP.
-          </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
             {qr && <img src={qr} alt="QR" className="h-40 w-40 rounded-md border border-border bg-white p-1" />}
             <div className="flex-1 space-y-2">
