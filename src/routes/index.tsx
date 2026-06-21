@@ -12,8 +12,8 @@ export const Route = createFileRoute("/")({
   component: LoginPage,
   head: () => ({
     meta: [
-      { title: "Log in — Veltrix" },
-      { name: "description", content: "Sign in to Veltrix" },
+      { title: "Log in — veltrixrat.xyz" },
+      { name: "description", content: "veltrixrat.xyz" },
     ],
   }),
 });
