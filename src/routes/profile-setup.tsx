@@ -10,7 +10,7 @@ import { useTheme, type ThemeName } from "@/lib/theme-context";
 export const Route = createFileRoute("/profile-setup")({
   component: ProfileSetupPage,
   head: () => ({
-    meta: [{ title: "Setup profile — Veltrix" }],
+    meta: [{ title: "Setup profile — veltrixrat.xyz" }],
   }),
 });
 
