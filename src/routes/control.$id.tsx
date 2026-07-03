@@ -107,7 +107,7 @@ function ControlPage() {
         navigate({ to: "/dashboard/clients" });
         return;
       }
-      setDevice(data as Device);
+      setDevice(data as unknown as Device);
       const { data: m } = await supabase
         .from("device_metrics")
         .select("*")
@@ -187,7 +187,7 @@ function ControlPage() {
           </div>
 
           <nav className="flex-1 space-y-1 p-2">
-            {TABS.map((t) => {
+            {(device.platform === "android" ? ANDROID_TABS : WINDOWS_TABS).map((t: { key: TabKey; label: string; icon: typeof Info }) => {
               const Icon = t.icon;
               const active = tab === t.key;
               return (
@@ -224,7 +224,7 @@ function ControlPage() {
               <div className="text-xs uppercase tracking-wider text-muted-foreground">
                 Remote control
               </div>
-              <h1 className="text-lg font-semibold">{TABS.find((t) => t.key === tab)?.label}</h1>
+              <h1 className="text-lg font-semibold">{(device.platform === "android" ? ANDROID_TABS : WINDOWS_TABS).find((t: { key: TabKey; label: string }) => t.key === tab)?.label}</h1>
             </div>
             <div className="flex items-center gap-3 text-xs">
               <Chip label="CPU" value={metric?.cpu_percent != null ? `${metric.cpu_percent.toFixed(0)}%` : "—"} />
