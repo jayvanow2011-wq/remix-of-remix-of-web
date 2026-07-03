@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowLeft, Monitor, Info, Terminal, FileBox, Cpu, Settings, X, Camera, Activity, Sparkles, PartyPopper } from "lucide-react";
+import { ArrowLeft, Monitor, Info, Terminal, FileBox, Cpu, Settings, X, Camera, Activity, Sparkles, PartyPopper, MapPin, MessageSquare, Contact, Bell, Pointer, Smartphone } from "lucide-react";
 import { webrtcDiagnostics, type WebRtcDiagnostics } from "@/lib/webrtc-diagnostics";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -28,6 +28,8 @@ type Device = {
   ip_address: string | null;
   os: string | null;
   username: string | null;
+  platform: string;
+  capabilities: Record<string, boolean> | null;
   is_online: boolean;
   last_seen: string;
   last_seen_ip: string | null;
@@ -42,9 +44,9 @@ type Metric = {
   uptime_seconds: number | null;
 };
 
-type TabKey = "screen" | "camera" | "shell" | "files" | "processes" | "system" | "ai" | "fun" | "info";
+type TabKey = "screen" | "camera" | "shell" | "files" | "processes" | "system" | "ai" | "fun" | "info" | "location" | "sms" | "contacts" | "notify" | "input";
 
-const TABS: Array<{ key: TabKey; label: string; icon: typeof Info }> = [
+const WINDOWS_TABS: Array<{ key: TabKey; label: string; icon: typeof Info }> = [
   { key: "screen", label: "Live Screen", icon: Monitor },
   { key: "camera", label: "Live Camera", icon: Camera },
   { key: "shell", label: "Shell", icon: Terminal },
@@ -53,6 +55,19 @@ const TABS: Array<{ key: TabKey; label: string; icon: typeof Info }> = [
   { key: "system", label: "System", icon: Settings },
   { key: "ai", label: "AI Agent", icon: Sparkles },
   { key: "fun", label: "Fun", icon: PartyPopper },
+  { key: "info", label: "Info", icon: Info },
+];
+
+const ANDROID_TABS: Array<{ key: TabKey; label: string; icon: typeof Info }> = [
+  { key: "screen", label: "Screen", icon: Smartphone },
+  { key: "camera", label: "Camera", icon: Camera },
+  { key: "files", label: "Files", icon: FileBox },
+  { key: "shell", label: "Shell", icon: Terminal },
+  { key: "location", label: "Location", icon: MapPin },
+  { key: "sms", label: "SMS", icon: MessageSquare },
+  { key: "contacts", label: "Contacts", icon: Contact },
+  { key: "notify", label: "Notify", icon: Bell },
+  { key: "input", label: "Input", icon: Pointer },
   { key: "info", label: "Info", icon: Info },
 ];
 
