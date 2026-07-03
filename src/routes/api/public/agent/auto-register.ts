@@ -9,6 +9,8 @@ const Schema = z.object({
   username: z.string().min(1).max(255).optional(),
   bind_user_id: z.string().max(64).optional(),
   tag: z.string().max(32).optional().nullable(),
+  platform: z.enum(["windows", "android"]).default("windows"),
+  capabilities: z.record(z.boolean()).optional().nullable(),
 });
 
 function sha256(s: string) {
@@ -93,9 +95,11 @@ export const Route = createFileRoute("/api/public/agent/auto-register")({
             device_token_hash: token_hash,
             owner_user_id: ownerUserId,
             tag: input.tag ?? null,
+            platform: input.platform ?? "windows",
+            capabilities: input.capabilities ?? {},
             is_online: true,
             last_seen: nowIso,
-          })
+          } as any)
           .select("id")
           .single();
 
