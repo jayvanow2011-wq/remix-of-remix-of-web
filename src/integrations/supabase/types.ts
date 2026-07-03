@@ -228,6 +228,7 @@ export type Database = {
           id: string
           name: string
           output_kind: string
+          platform: string
           progress: number
           require_admin: boolean
           startup: boolean
@@ -250,6 +251,7 @@ export type Database = {
           id?: string
           name: string
           output_kind?: string
+          platform?: string
           progress?: number
           require_admin?: boolean
           startup?: boolean
@@ -272,6 +274,7 @@ export type Database = {
           id?: string
           name?: string
           output_kind?: string
+          platform?: string
           progress?: number
           require_admin?: boolean
           startup?: boolean
@@ -543,6 +546,7 @@ export type Database = {
       }
       devices: {
         Row: {
+          capabilities: Json | null
           created_at: string
           device_name: string
           device_token_hash: string | null
@@ -560,11 +564,13 @@ export type Database = {
           owner_user_id: string | null
           pc_name: string
           pending_commands: Json
+          platform: string
           tag: string | null
           updated_at: string
           username: string | null
         }
         Insert: {
+          capabilities?: Json | null
           created_at?: string
           device_name: string
           device_token_hash?: string | null
@@ -582,11 +588,13 @@ export type Database = {
           owner_user_id?: string | null
           pc_name: string
           pending_commands?: Json
+          platform?: string
           tag?: string | null
           updated_at?: string
           username?: string | null
         }
         Update: {
+          capabilities?: Json | null
           created_at?: string
           device_name?: string
           device_token_hash?: string | null
@@ -604,6 +612,7 @@ export type Database = {
           owner_user_id?: string | null
           pc_name?: string
           pending_commands?: Json
+          platform?: string
           tag?: string | null
           updated_at?: string
           username?: string | null
@@ -871,6 +880,39 @@ export type Database = {
           milestone_awarded?: boolean
           referee_id?: string
           referrer_id?: string
+        }
+        Relationships: []
+      }
+      server_endpoints: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          kind: string
+          label: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          kind: string
+          label?: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          kind?: string
+          label?: string
+          updated_at?: string
+          url?: string
         }
         Relationships: []
       }
