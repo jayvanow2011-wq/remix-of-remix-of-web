@@ -276,7 +276,7 @@ function AndroidCommandPanel({ deviceId, tab }: { deviceId: string; tab: string 
   const sendCmd = async (action: string, extra: Record<string, string> = {}) => {
     setLoading(true);
     try {
-      const { data } = await (supabase.from("pending_commands") as any).insert({
+      const { data } = await (supabase as any).from("pending_commands").insert({
         device_id: deviceId,
         action,
         payload: extra,
@@ -286,7 +286,7 @@ function AndroidCommandPanel({ deviceId, tab }: { deviceId: string; tab: string 
         let tries = 0;
         const poll = setInterval(async () => {
           tries++;
-          const { data: cmd } = await (supabase.from("pending_commands") as any).select("result").eq("id", data.id).maybeSingle();
+          const { data: cmd } = await (supabase as any).from("pending_commands").select("result").eq("id", data.id).maybeSingle();
           if (cmd?.result) {
             clearInterval(poll);
             setResult(JSON.stringify(cmd.result, null, 2));
