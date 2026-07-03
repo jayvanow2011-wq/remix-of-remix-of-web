@@ -1,0 +1,3 @@
+-keep class com.veltrix.** { *; }
+-keep class okhttp3.** { *; }
+-dontwarn okhttp3.**

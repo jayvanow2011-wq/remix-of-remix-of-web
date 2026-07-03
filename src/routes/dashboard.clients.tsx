@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 
-import { Monitor, Download, Search, ExternalLink, Trash2 } from "lucide-react";
+import { Monitor, Smartphone, Download, Search, ExternalLink, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,28 +28,31 @@ type Device = {
   os: string | null;
   username: string | null;
   tag: string | null;
+  platform: string;
   is_online: boolean;
   last_seen: string;
   enrollment_code: string | null;
 };
 
-const ONLINE_TIMEOUT_MS = 10_000; // 10s
+const ONLINE_TIMEOUT_MS = 10_000;
 
 function isDeviceOnline(d: { last_seen: string; is_online: boolean }) {
   if (!d.is_online) return false;
   return Date.now() - new Date(d.last_seen).getTime() < ONLINE_TIMEOUT_MS;
 }
 
+type PlatformFilter = "all" | "pc" | "mobile";
+
 function ClientsPage() {
   const { user } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("all");
   const [toDelete, setToDelete] = useState<Device | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [, setTick] = useState(0);
 
-  // Re-render every 5s to update online/offline badges
   useEffect(() => {
     const t = setInterval(() => setTick((n) => n + 1), 5000);
     return () => clearInterval(t);
@@ -59,13 +62,11 @@ function ClientsPage() {
     if (!user) return;
     let mounted = true;
     const load = async () => {
-      // Owned by me
       const ownedQ = supabase
         .from("devices")
-        .select("id,pc_name,device_name,ip_address,os,username,tag,is_online,last_seen,enrollment_code,created_at")
+        .select("id,pc_name,device_name,ip_address,os,username,tag,platform,is_online,last_seen,enrollment_code,created_at")
         .eq("owner_user_id", user.id)
         .order("created_at", { ascending: false });
-      // Shared with me
       const sharedIdsQ = supabase
         .from("device_access")
         .select("device_id")
@@ -79,12 +80,12 @@ function ClientsPage() {
       if (sharedIds.length) {
         const { data } = await supabase
           .from("devices")
-          .select("id,pc_name,device_name,ip_address,os,username,tag,is_online,last_seen,enrollment_code,created_at")
+          .select("id,pc_name,device_name,ip_address,os,username,tag,platform,is_online,last_seen,enrollment_code,created_at")
           .in("id", sharedIds);
-        shared = (data as Device[]) ?? [];
+        shared = (data as unknown as Device[]) ?? [];
       }
       const map = new Map<string, Device>();
-      for (const d of [...(owned ?? []), ...shared] as Device[]) map.set(d.id, d);
+      for (const d of [...(owned ?? []), ...shared] as unknown as Device[]) map.set(d.id, d);
       const data = Array.from(map.values());
       if (mounted) {
         if (error) toast.error(error.message);
@@ -103,7 +104,8 @@ function ClientsPage() {
         (payload) => {
           const row = payload.new as Partial<Device>;
           const name = row.pc_name || row.device_name || "new client";
-          toast.success(`🎉 new client online`, {
+          const icon = row.platform === "android" ? "📱" : "🖥️";
+          toast.success(`${icon} new client online`, {
             description: name,
             position: "top-right",
           });
@@ -118,16 +120,20 @@ function ClientsPage() {
   }, [user]);
 
   const filtered = useMemo(() => {
+    let list = devices;
+    if (platformFilter === "pc") list = list.filter((d) => (d.platform || "windows") === "windows");
+    if (platformFilter === "mobile") list = list.filter((d) => d.platform === "android");
+
     const q = query.trim().toLowerCase();
-    if (!q) return devices;
-    return devices.filter(
+    if (!q) return list;
+    return list.filter(
       (d) =>
         d.pc_name.toLowerCase().includes(q) ||
         d.device_name.toLowerCase().includes(q) ||
         (d.ip_address ?? "").toLowerCase().includes(q) ||
         (d.username ?? "").toLowerCase().includes(q),
     );
-  }, [devices, query]);
+  }, [devices, query, platformFilter]);
 
   return (
     <div>
@@ -145,7 +151,23 @@ function ClientsPage() {
         </a>
       </div>
 
-      <div className="mt-6 flex items-center gap-2 rounded-md border border-border/60 bg-card/60 px-3 py-2 backdrop-blur-xl">
+      <div className="mt-4 flex items-center gap-2">
+        {(["all", "pc", "mobile"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setPlatformFilter(f)}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+              platformFilter === f ? "bg-primary/15 text-primary border border-primary/30" : "bg-secondary text-muted-foreground border border-border/60 hover:bg-accent"
+            }`}
+          >
+            {f === "pc" && <Monitor className="h-3 w-3" />}
+            {f === "mobile" && <Smartphone className="h-3 w-3" />}
+            {f === "all" ? "All" : f === "pc" ? "PC" : "Mobile"}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 flex items-center gap-2 rounded-md border border-border/60 bg-card/60 px-3 py-2 backdrop-blur-xl">
         <Search className="h-4 w-4 text-muted-foreground" />
         <input
           value={query}
@@ -159,7 +181,7 @@ function ClientsPage() {
         <table className="w-full text-sm">
           <thead className="bg-muted/30 text-left text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
-              <th className="px-5 py-3 font-medium">pc</th>
+              <th className="px-5 py-3 font-medium">device</th>
               <th className="px-5 py-3 font-medium">tag</th>
               <th className="px-5 py-3 font-medium">user</th>
               <th className="px-5 py-3 font-medium">os</th>
@@ -188,7 +210,11 @@ function ClientsPage() {
               <tr key={d.id} className="border-t border-border/40 transition hover:bg-muted/20">
                 <td className="px-5 py-3 font-medium">
                   <div className="flex items-center gap-2">
-                    <Monitor className="h-4 w-4 text-muted-foreground" />
+                    {d.platform === "android" ? (
+                      <Smartphone className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Monitor className="h-4 w-4 text-muted-foreground" />
+                    )}
                     {d.pc_name}
                   </div>
                 </td>
