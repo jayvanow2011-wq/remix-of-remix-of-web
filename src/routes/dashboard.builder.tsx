@@ -36,7 +36,7 @@ function BuilderPage() {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(20);
-    setBuilds((data ?? []) as Build[]);
+    setBuilds((data ?? []) as unknown as Build[]);
   };
 
   useEffect(() => { load(); }, [user]);

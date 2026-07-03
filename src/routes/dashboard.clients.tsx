@@ -82,10 +82,10 @@ function ClientsPage() {
           .from("devices")
           .select("id,pc_name,device_name,ip_address,os,username,tag,platform,is_online,last_seen,enrollment_code,created_at")
           .in("id", sharedIds);
-        shared = (data as Device[]) ?? [];
+        shared = (data as unknown as Device[]) ?? [];
       }
       const map = new Map<string, Device>();
-      for (const d of [...(owned ?? []), ...shared] as Device[]) map.set(d.id, d);
+      for (const d of [...(owned ?? []), ...shared] as unknown as Device[]) map.set(d.id, d);
       const data = Array.from(map.values());
       if (mounted) {
         if (error) toast.error(error.message);
