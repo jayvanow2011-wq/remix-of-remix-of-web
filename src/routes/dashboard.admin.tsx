@@ -815,3 +815,121 @@ function TurnTab() {
     </div>
   );
 }
+
+/* ─── Endpoints (admin-managed server URLs) ─── */
+type EndpointRow = { id: string; kind: string; label: string; url: string; is_active: boolean; is_default: boolean; updated_at: string };
+
+function EndpointsTab() {
+  const [rows, setRows] = useState<EndpointRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ kind: "ws_relay", label: "", url: "" });
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await (supabase as any).from("server_endpoints").select("*").order("kind").order("updated_at", { ascending: false });
+    setRows((data ?? []) as EndpointRow[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const add = async () => {
+    if (!form.url.trim()) return toast.error("URL required");
+    setSaving(true);
+    const { error } = await (supabase as any).from("server_endpoints").insert({ kind: form.kind, label: form.label.trim() || form.kind, url: form.url.trim(), is_active: true, is_default: false });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Endpoint added");
+    setForm({ kind: "ws_relay", label: "", url: "" });
+    load();
+  };
+
+  const setDefault = async (row: EndpointRow) => {
+    // Unset current default for this kind, then set this one
+    await (supabase as any).from("server_endpoints").update({ is_default: false }).eq("kind", row.kind);
+    await (supabase as any).from("server_endpoints").update({ is_default: true }).eq("id", row.id);
+    toast.success(`${row.label || row.url} set as default`);
+    load();
+  };
+
+  const toggle = async (row: EndpointRow) => {
+    await (supabase as any).from("server_endpoints").update({ is_active: !row.is_active }).eq("id", row.id);
+    load();
+  };
+
+  const remove = async (row: EndpointRow) => {
+    if (!confirm(`Remove ${row.url}?`)) return;
+    await (supabase as any).from("server_endpoints").delete().eq("id", row.id);
+    toast.success("Removed");
+    load();
+  };
+
+  const kinds = ["frontend", "ws_relay", "buildserver", "lunes_host"] as const;
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <Globe className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Add server endpoint</h2>
+        </div>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Add backend WS relay, build server, or frontend URLs here. The default for each kind is baked into new builds.
+        </p>
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
+          <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })} className="rounded-md border border-border/60 bg-input/60 px-3 py-2 text-sm">
+            {kinds.map((k) => <option key={k} value={k}>{k}</option>)}
+          </select>
+          <input placeholder="Label" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} className="rounded-md border border-border/60 bg-input/60 px-3 py-2 text-sm" />
+          <input placeholder="https://..." value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} className="rounded-md border border-border/60 bg-input/60 px-3 py-2 text-sm md:col-span-2 font-mono" />
+        </div>
+        <div className="mt-3 flex justify-end">
+          <button onClick={add} disabled={saving} className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Add
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-border/60 bg-card/40">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="px-4 py-2 text-left">Kind</th>
+              <th className="px-4 py-2 text-left">Label</th>
+              <th className="px-4 py-2 text-left">URL</th>
+              <th className="px-4 py-2 text-left">Status</th>
+              <th className="px-4 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Loading…</td></tr>}
+            {!loading && rows.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No endpoints configured.</td></tr>}
+            {rows.map((r) => (
+              <tr key={r.id} className="border-t border-border/40">
+                <td className="px-4 py-3"><span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">{r.kind}</span></td>
+                <td className="px-4 py-3 font-medium">{r.label}</td>
+                <td className="px-4 py-3 font-mono text-xs break-all">{r.url}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => toggle(r)} className={`rounded-md border px-2 py-1 text-xs ${r.is_active ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-border/60 text-muted-foreground"}`}>
+                      {r.is_active ? "Active" : "Off"}
+                    </button>
+                    {r.is_default ? (
+                      <span className="rounded-md bg-primary/15 px-2 py-1 text-xs font-medium text-primary">Default</span>
+                    ) : (
+                      <button onClick={() => setDefault(r)} className="rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground hover:text-foreground">Set default</button>
+                    )}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button onClick={() => remove(r)} className="rounded-md border border-destructive/40 p-1.5 text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
