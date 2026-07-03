@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ShieldCheck, Users as UsersIcon, Monitor, FileText, Megaphone,
-  CreditCard, Trash2, Loader2, Plus, Minus, Ban, UserX, Undo2, Radio,
+  CreditCard, Trash2, Loader2, Plus, Minus, Ban, UserX, Undo2, Radio, Globe,
 } from "lucide-react";
 import { adminAdjustDays, adminBanUser, adminUnbanUser, adminRemoveUser } from "@/lib/admin.functions";
 
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/dashboard/admin")({
   component: AdminPanel,
 });
 
-type Tab = "users" | "devices" | "audit" | "subs" | "news" | "turn" | "payments";
+type Tab = "users" | "devices" | "audit" | "subs" | "news" | "turn" | "payments" | "endpoints";
 
 type UserRow = {
   id: string;
@@ -72,6 +72,7 @@ function AdminPanel() {
     { id: "payments", label: "Payments", icon: CreditCard },
     { id: "news", label: "Post News", icon: Megaphone },
     { id: "turn", label: "TURN Servers", icon: Radio },
+    { id: "endpoints", label: "Endpoints", icon: Globe },
   ];
 
   return (
@@ -112,6 +113,7 @@ function AdminPanel() {
       {tab === "payments" && <PaymentsTab />}
       {tab === "news" && <NewsTab />}
       {tab === "turn" && <TurnTab />}
+      {tab === "endpoints" && <EndpointsTab />}
     </div>
   );
 }
