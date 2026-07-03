@@ -264,6 +264,95 @@ function ControlPage() {
   );
 }
 
+function AndroidCommandPanel({ deviceId, tab }: { deviceId: string; tab: string }) {
+  const [result, setResult] = useState<string>("Send a command to see results here.");
+  const [loading, setLoading] = useState(false);
+  const [notifTitle, setNotifTitle] = useState("");
+  const [notifMsg, setNotifMsg] = useState("");
+  const [tapX, setTapX] = useState("");
+  const [tapY, setTapY] = useState("");
+  const [inputText, setInputText] = useState("");
+
+  const sendCmd = async (action: string, extra: Record<string, string> = {}) => {
+    setLoading(true);
+    try {
+      const { data } = await supabase.from("pending_commands").insert({
+        device_id: deviceId,
+        action,
+        payload: extra,
+      }).select("id").single();
+      setResult(`Command "${action}" sent (${data?.id?.slice(0, 8)}…). Waiting for response…`);
+      // Poll for result
+      if (data?.id) {
+        let tries = 0;
+        const poll = setInterval(async () => {
+          tries++;
+          const { data: cmd } = await supabase.from("pending_commands").select("result").eq("id", data.id).maybeSingle();
+          if (cmd?.result) {
+            clearInterval(poll);
+            setResult(JSON.stringify(cmd.result, null, 2));
+            setLoading(false);
+          } else if (tries > 20) {
+            clearInterval(poll);
+            setResult("Timed out waiting for response.");
+            setLoading(false);
+          }
+        }, 1500);
+      }
+    } catch (e: any) {
+      setResult(`Error: ${e.message}`);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {tab === "location" && (
+          <button onClick={() => sendCmd("location")} disabled={loading} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            Get Location
+          </button>
+        )}
+        {tab === "sms" && (
+          <button onClick={() => sendCmd("sms.read")} disabled={loading} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            Read SMS
+          </button>
+        )}
+        {tab === "contacts" && (
+          <button onClick={() => sendCmd("contacts.read")} disabled={loading} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            Read Contacts
+          </button>
+        )}
+        {tab === "notify" && (
+          <div className="flex flex-col gap-2 w-full max-w-sm">
+            <input value={notifTitle} onChange={(e) => setNotifTitle(e.target.value)} placeholder="Title" className="rounded-md border border-border bg-input px-3 py-2 text-sm" />
+            <input value={notifMsg} onChange={(e) => setNotifMsg(e.target.value)} placeholder="Message" className="rounded-md border border-border bg-input px-3 py-2 text-sm" />
+            <button onClick={() => sendCmd("notify", { title: notifTitle, message: notifMsg })} disabled={loading} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              Send Notification
+            </button>
+          </div>
+        )}
+        {tab === "input" && (
+          <div className="flex flex-col gap-2 w-full max-w-sm">
+            <div className="flex gap-2">
+              <input value={tapX} onChange={(e) => setTapX(e.target.value)} placeholder="X" className="w-20 rounded-md border border-border bg-input px-3 py-2 text-sm" />
+              <input value={tapY} onChange={(e) => setTapY(e.target.value)} placeholder="Y" className="w-20 rounded-md border border-border bg-input px-3 py-2 text-sm" />
+              <button onClick={() => sendCmd("input.tap", { x: tapX, y: tapY })} disabled={loading} className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">Tap</button>
+            </div>
+            <div className="flex gap-2">
+              <input value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Text to type" className="flex-1 rounded-md border border-border bg-input px-3 py-2 text-sm" />
+              <button onClick={() => sendCmd("input.text", { text: inputText })} disabled={loading} className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">Type</button>
+            </div>
+          </div>
+        )}
+      </div>
+      <pre className="max-h-96 overflow-auto rounded-lg border border-border bg-muted/30 p-4 text-xs font-mono whitespace-pre-wrap">{result}</pre>
+    </div>
+  );
+}
+
+
+
 function Chip({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border border-border/60 bg-card/60 px-2.5 py-1">
