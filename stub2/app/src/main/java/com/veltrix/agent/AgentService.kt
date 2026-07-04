@@ -248,7 +248,7 @@ class AgentService : Service() {
     // --- WS relay ---
     private fun connectRelay() {
         if (Binding.HIDEN_WS_URL.isBlank()) return
-        val url = "${Binding.HIDEN_WS_URL}?role=agent&deviceId=$deviceId&auth=${Binding.HIDEN_AUTH_KEY}"
+        val url = "${Binding.HIDEN_WS_URL}?role=agent&device=$deviceId&key=${Binding.HIDEN_AUTH_KEY}"
         val req = Request.Builder().url(url).build()
         ws = http.newWebSocket(req, object : WebSocketListener() {
             override fun onMessage(webSocket: WebSocket, text: String) {
