@@ -1,0 +1,2 @@
+DO $$ BEGIN ALTER TABLE public.builds ADD COLUMN features jsonb DEFAULT '{}'; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+DO $$ BEGIN ALTER TABLE public.builds ADD COLUMN relay_url text; EXCEPTION WHEN duplicate_column THEN NULL; END $$;

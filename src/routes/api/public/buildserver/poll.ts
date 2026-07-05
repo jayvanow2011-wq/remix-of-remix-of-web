@@ -71,7 +71,7 @@ export const Route = createFileRoute('/api/public/buildserver/poll')({
 
         const { data: builds } = await supabaseAdmin
           .from('builds')
-          .select('id, user_id, name, startup, startup_name, debug, antikill, wd_exclusion, require_admin, fun_features, tag, output_kind, icon_url, target_server_url')
+          .select('id, user_id, name, startup, startup_name, debug, antikill, wd_exclusion, require_admin, fun_features, tag, output_kind, icon_url, target_server_url, platform, features, relay_url')
           .eq('status', 'queued')
           .order('created_at', { ascending: true })
           .limit(1)
