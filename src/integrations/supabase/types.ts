@@ -223,6 +223,7 @@ export type Database = {
           debug: boolean
           download_url: string | null
           error: string | null
+          features: Json | null
           fun_features: boolean
           icon_url: string | null
           id: string
@@ -230,6 +231,7 @@ export type Database = {
           output_kind: string
           platform: string
           progress: number
+          relay_url: string | null
           require_admin: boolean
           startup: boolean
           startup_name: string | null
@@ -246,6 +248,7 @@ export type Database = {
           debug?: boolean
           download_url?: string | null
           error?: string | null
+          features?: Json | null
           fun_features?: boolean
           icon_url?: string | null
           id?: string
@@ -253,6 +256,7 @@ export type Database = {
           output_kind?: string
           platform?: string
           progress?: number
+          relay_url?: string | null
           require_admin?: boolean
           startup?: boolean
           startup_name?: string | null
@@ -269,6 +273,7 @@ export type Database = {
           debug?: boolean
           download_url?: string | null
           error?: string | null
+          features?: Json | null
           fun_features?: boolean
           icon_url?: string | null
           id?: string
@@ -276,6 +281,7 @@ export type Database = {
           output_kind?: string
           platform?: string
           progress?: number
+          relay_url?: string | null
           require_admin?: boolean
           startup?: boolean
           startup_name?: string | null
