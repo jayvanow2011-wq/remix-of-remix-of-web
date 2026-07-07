@@ -968,39 +968,48 @@ export type Database = {
           amount_usd: number | null
           created_at: string
           currency: string | null
+          eth_amount: number | null
           expires_at: string | null
           id: string
           plan: string
           provider: string
           provider_payment_id: string | null
+          sender_address: string | null
           started_at: string | null
           status: string
+          tx_hash: string | null
           user_id: string
         }
         Insert: {
           amount_usd?: number | null
           created_at?: string
           currency?: string | null
+          eth_amount?: number | null
           expires_at?: string | null
           id?: string
           plan: string
           provider?: string
           provider_payment_id?: string | null
+          sender_address?: string | null
           started_at?: string | null
           status?: string
+          tx_hash?: string | null
           user_id: string
         }
         Update: {
           amount_usd?: number | null
           created_at?: string
           currency?: string | null
+          eth_amount?: number | null
           expires_at?: string | null
           id?: string
           plan?: string
           provider?: string
           provider_payment_id?: string | null
+          sender_address?: string | null
           started_at?: string | null
           status?: string
+          tx_hash?: string | null
           user_id?: string
         }
         Relationships: []
