@@ -249,12 +249,13 @@ function CreateModal({ onClose, onCreate, userId }: { onClose: () => void; onCre
           {/* Platform selector */}
           <Field label="Platform">
             <div className="flex gap-2">
-              {(["windows", "android"] as const).map((p) => (
-                <button key={p} onClick={() => setPlatform(p)} className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition ${platform === p ? "border-primary bg-primary/15 text-primary" : "border-border bg-secondary text-muted-foreground"}`}>
-                  {p === "windows" ? <Monitor className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
-                  {p === "windows" ? "Windows (.exe)" : "Android (.apk)"}
-                </button>
-              ))}
+              <button onClick={() => setPlatform("windows")} className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition ${platform === "windows" ? "border-primary bg-primary/15 text-primary" : "border-border bg-secondary text-muted-foreground"}`}>
+                <Monitor className="h-4 w-4" /> Windows (.exe)
+              </button>
+              <button disabled className="relative flex flex-1 items-center justify-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm font-medium text-muted-foreground opacity-60 cursor-not-allowed">
+                <Smartphone className="h-4 w-4" /> Android (.apk)
+                <span className="absolute -right-1 -top-1 rounded-full bg-yellow-500 px-1.5 py-0.5 text-[8px] font-bold uppercase text-black">Soon</span>
+              </button>
             </div>
           </Field>
 

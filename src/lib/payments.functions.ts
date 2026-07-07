@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const PLANS: Record<string, { label: string; usd: number; days: number }> = {
   "1week": { label: "1 Week", usd: 5, days: 7 },
@@ -10,18 +11,49 @@ const PLANS: Record<string, { label: string; usd: number; days: number }> = {
   "lifetime": { label: "Lifetime", usd: 200, days: 36500 },
 };
 
-export const createNowPayment = createServerFn({ method: "POST" })
+const ETH_RECEIVE_ADDRESS = "0x6D752df8df10b3A2c7D4492b8e298fC1E1F34b8a";
+const BONUS = 1.2;
+
+/** Get current ETH price in USD from CoinGecko (free, no key) */
+async function getEthPrice(): Promise<number> {
+  const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd", {
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error("Failed to fetch ETH price");
+  const data = await res.json();
+  return data.ethereum.usd as number;
+}
+
+/** Get ETH price for a plan */
+export const getEthQuote = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
-    z.object({
-      planId: z.string().min(1).max(20),
-      userId: z.string().uuid(),
-    }).parse(input),
+    z.object({ planId: z.string().min(1).max(20) }).parse(input),
   )
   .handler(async ({ data }) => {
     const plan = PLANS[data.planId];
     if (!plan) throw new Error("Invalid plan");
+    const ethPrice = await getEthPrice();
+    // Round to 6 decimals
+    const ethAmount = Math.ceil((plan.usd / ethPrice) * 1e6) / 1e6;
+    return { ethAmount, ethPrice, usd: plan.usd, address: ETH_RECEIVE_ADDRESS };
+  });
 
-    // Read admin-controlled settings
+/** Create a pending ETH order */
+export const createEthOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      planId: z.string().min(1).max(20),
+      senderAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+      ethAmount: z.number().positive(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const plan = PLANS[data.planId];
+    if (!plan) throw new Error("Invalid plan");
+
+    // Check settings
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: settingsRow } = await supabaseAdmin
       .from("app_settings")
@@ -32,81 +64,155 @@ export const createNowPayment = createServerFn({ method: "POST" })
     if (settings.enabled === false) throw new Error("Payments are currently disabled");
     const mode = settings.mode === "sandbox" ? "sandbox" : "live";
 
-    // TEST MODE: simulate a successful payment, no provider call.
-    // Activates the subscription immediately with the +20% summer bonus.
+    // Sandbox: auto-confirm
     if (mode === "sandbox") {
-      const BONUS = 1.2;
       const days = Math.round(plan.days * BONUS);
       const now = new Date();
-
-      // Extend from existing active expiry if later than now
       const { data: existing } = await supabaseAdmin
         .from("subscriptions")
         .select("expires_at")
-        .eq("user_id", data.userId)
+        .eq("user_id", userId)
         .eq("status", "active")
         .order("expires_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      const base =
-        existing?.expires_at && new Date(existing.expires_at) > now
-          ? new Date(existing.expires_at)
-          : now;
-      const expires = new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
+      const base = existing?.expires_at && new Date(existing.expires_at) > now
+        ? new Date(existing.expires_at) : now;
+      const expires = new Date(base.getTime() + days * 86400000);
 
       await supabaseAdmin.from("subscriptions").insert({
-        user_id: data.userId,
+        user_id: userId,
         plan: data.planId,
         status: "active",
         started_at: now.toISOString(),
         expires_at: expires.toISOString(),
-        provider: "test",
+        provider: "eth_test",
         provider_payment_id: `test_${Date.now()}`,
-        amount_usd: 0,
-        currency: "TEST",
+        amount_usd: plan.usd,
+        currency: "ETH",
+        sender_address: data.senderAddress,
+        eth_amount: data.ethAmount,
       });
-
-      return { invoiceUrl: "", invoiceId: "test", mode, test: true as const };
+      return { ok: true as const, test: true as const };
     }
 
-    const apiKey = process.env.NOWPAYMENTS_API_KEY;
-    if (!apiKey) throw new Error("Payment provider not configured");
-
-    const apiBase = "https://api.nowpayments.io";
-
-    const { getRequestHost } = await import("@tanstack/react-start/server");
-    let origin = "";
-    try {
-      const host = getRequestHost();
-      origin = host ? `https://${host}` : "";
-    } catch {
-      origin = "";
-    }
-
-    const orderId = `${data.userId}__${data.planId}__${mode}__${Date.now()}`;
-    const res = await fetch(`${apiBase}/v1/invoice`, {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        price_amount: plan.usd,
-        price_currency: "usd",
-        order_id: orderId,
-        order_description: `veltrixrat.xyz ${plan.label} subscription`,
-        ipn_callback_url: origin ? `${origin}/api/public/nowpayments/webhook` : undefined,
-        success_url: origin ? `${origin}/dashboard/subs?paid=1` : undefined,
-        cancel_url: origin ? `${origin}/dashboard/subs?cancel=1` : undefined,
-      }),
+    // Live: insert pending order
+    const orderId = `eth_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const { error } = await supabaseAdmin.from("subscriptions").insert({
+      user_id: userId,
+      plan: data.planId,
+      status: "pending",
+      provider: "eth",
+      provider_payment_id: orderId,
+      amount_usd: plan.usd,
+      currency: "ETH",
+      sender_address: data.senderAddress,
+      eth_amount: data.ethAmount,
     });
+    if (error) throw new Error(error.message);
+    return { ok: true as const, orderId };
+  });
 
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("NowPayments error", text);
-      throw new Error("Payment creation failed");
+/** Check pending ETH orders for confirmed transactions */
+export const checkEthPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ orderId: z.string() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: order } = await supabaseAdmin
+      .from("subscriptions")
+      .select("*")
+      .eq("provider_payment_id", data.orderId)
+      .eq("user_id", userId)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    if (!order) return { status: "not_found" as const };
+
+    const senderAddr = (order as any).sender_address as string;
+    const expectedEth = Number((order as any).eth_amount);
+    if (!senderAddr || !expectedEth) return { status: "pending" as const };
+
+    // Check Etherscan for transactions from sender to our address
+    try {
+      const url = `https://api.etherscan.io/api?module=account&action=txlist&address=${ETH_RECEIVE_ADDRESS}&startblock=0&endblock=99999999&sort=desc&page=1&offset=50`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      const json = await res.json();
+
+      if (json.status !== "1" || !Array.isArray(json.result)) {
+        return { status: "pending" as const };
+      }
+
+      // Find a tx from sender with matching amount (within 1% tolerance for gas)
+      const expectedWei = BigInt(Math.round(expectedEth * 1e18));
+      const tolerance = expectedWei / 100n; // 1%
+
+      for (const tx of json.result) {
+        if (tx.from?.toLowerCase() !== senderAddr.toLowerCase()) continue;
+        if (tx.to?.toLowerCase() !== ETH_RECEIVE_ADDRESS.toLowerCase()) continue;
+        if (tx.isError === "1") continue;
+
+        const txValue = BigInt(tx.value);
+        const diff = txValue > expectedWei ? txValue - expectedWei : expectedWei - txValue;
+        if (diff <= tolerance) {
+          // Found matching tx — activate subscription
+          const plan = PLANS[order.plan ?? ""] ?? { days: 30 };
+          const days = Math.round(plan.days * BONUS);
+          const now = new Date();
+          const { data: existing } = await supabaseAdmin
+            .from("subscriptions")
+            .select("expires_at")
+            .eq("user_id", userId)
+            .eq("status", "active")
+            .order("expires_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const base = existing?.expires_at && new Date(existing.expires_at) > now
+            ? new Date(existing.expires_at) : now;
+          const expires = new Date(base.getTime() + days * 86400000);
+
+          await supabaseAdmin
+            .from("subscriptions")
+            .update({
+              status: "active",
+              started_at: now.toISOString(),
+              expires_at: expires.toISOString(),
+              tx_hash: tx.hash,
+            })
+            .eq("id", order.id);
+
+          return { status: "confirmed" as const, txHash: tx.hash };
+        }
+      }
+
+      return { status: "pending" as const };
+    } catch {
+      return { status: "pending" as const };
     }
+  });
 
-    const invoice = (await res.json()) as { id: string; invoice_url: string };
-    return { invoiceUrl: invoice.invoice_url, invoiceId: String(invoice.id), mode };
+/** Check if sender wallet has enough ETH balance */
+export const checkWalletBalance = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({
+      address: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+      requiredEth: z.number().positive(),
+    }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    try {
+      const url = `https://api.etherscan.io/api?module=account&action=balance&address=${data.address}&tag=latest`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      const json = await res.json();
+      if (json.status !== "1") return { sufficient: true }; // fail open
+      const balanceWei = BigInt(json.result);
+      const balanceEth = Number(balanceWei) / 1e18;
+      return { sufficient: balanceEth >= data.requiredEth, balance: balanceEth };
+    } catch {
+      return { sufficient: true }; // fail open
+    }
   });
