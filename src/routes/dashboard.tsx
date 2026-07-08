@@ -7,11 +7,11 @@ import { CountdownBadge } from "@/components/SubscriptionLock";
 import { getProfile, type Profile } from "@/lib/profile";
 import {
   LayoutDashboard, Users, LogOut, Wrench, Lock, CreditCard,
-  MessagesSquare, Bell, Settings as SettingsIcon, ShieldCheck, MessageCircle, Gift, Megaphone,
+  Bell, Settings as SettingsIcon, ShieldCheck, Gift, Megaphone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomization } from "@/lib/customization-context";
-import { NavMusicWidget } from "@/components/NavMusicWidget";
+
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardLayout,
@@ -56,8 +56,6 @@ function DashboardLayout() {
     { to: "/dashboard/clients", label: "Clients", icon: Users, exact: false },
     { to: "/dashboard/builder", label: "Builder", icon: Wrench, exact: false },
     { to: "/dashboard/ads", label: "Ads", icon: Megaphone, exact: false },
-    { to: "/dashboard/chat", label: "Chat", icon: MessageCircle, exact: false },
-    { to: "/dashboard/community", label: "Community", icon: MessagesSquare, exact: false },
     { to: "/dashboard/refer", label: "Refer", icon: Gift, exact: false },
     { to: "/dashboard/notifications", label: "Notifications", icon: Bell, exact: false },
     { to: "/dashboard/subs", label: "Subscriptions", icon: CreditCard, exact: false },
@@ -119,7 +117,7 @@ function DashboardLayout() {
           </div>
           <div className="flex items-center gap-2">
             {!sub.loading && <CountdownBadge msLeft={sub.msLeft} />}
-            <NavMusicWidget />
+            
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover border border-border" />
             ) : <div className="h-8 w-8 rounded-full bg-muted" />}
