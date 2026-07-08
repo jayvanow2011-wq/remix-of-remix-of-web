@@ -5,5 +5,6 @@
   "rust_target": "x86_64-pc-windows-gnu",
   "supabase_url": "https://founhqrlavhqyggowlja.supabase.co",
   "supabase_anon_key": "sb_publishable_ItOxvbdn18MEra97VN5M9g_aSjo9cNU",
-  "hiden_auth_key": "ilovenrattingppl"
+  "hiden_auth_key": "ilovenrattingppl",
+  "default_relay_url": "wss://veltrix.hidenfree.com"
 }

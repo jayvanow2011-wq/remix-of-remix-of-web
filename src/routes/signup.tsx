@@ -6,7 +6,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { generateTotp, verifyTotpAndEnable, issueRecoveryCodes, finalizeProfile } from "@/lib/totp.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Check, Copy, Download, Loader2, ShieldCheck, SkipForward } from "lucide-react";
-import { LoginMusic } from "@/components/LoginMusic";
+
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
@@ -129,7 +129,7 @@ function SignupPage() {
 
   return (
     <main className="relative flex min-h-screen items-start justify-center px-4 py-10">
-      <LoginMusic />
+      
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute left-1/2 top-0 h-[420px] w-[640px] -translate-x-1/2 rounded-full opacity-[0.18] blur-3xl"
           style={{ background: "radial-gradient(closest-side, var(--color-foreground), transparent)" }} />

@@ -6,7 +6,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { totpStatusForUsername, verifyTotpForUser } from "@/lib/totp.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
-import { LoginMusic } from "@/components/LoginMusic";
+
 
 export const Route = createFileRoute("/")({
   component: LoginPage,
@@ -106,7 +106,7 @@ function LoginPage() {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center px-4 py-10">
-      <LoginMusic />
+      
       {/* soft top glow behind card */}
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute left-1/2 top-[18%] h-[360px] w-[520px] -translate-x-1/2 rounded-full opacity-[0.22] blur-3xl"
